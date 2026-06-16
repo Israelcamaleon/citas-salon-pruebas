@@ -1,0 +1,104 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Service {
+  id          Int       @id @default(autoincrement())
+  name        String
+  durationMin Int
+  priceMXN    Int
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  bookings    Booking[]
+}
+
+model Staff {
+  id        Int       @id @default(autoincrement())
+  name      String
+  role      String
+  email     String    @unique
+  phone     String?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  bookings  Booking[]
+}
+
+model Location {
+  id        Int                @id @default(autoincrement())
+  name      String
+  address   String
+  phone     String?
+  isActive  Boolean            @default(true)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  bookings  Booking[]
+  schedule  LocationSchedule?
+}
+
+model Customer {
+  id        Int       @id @default(autoincrement())
+  name      String
+  phone     String?
+  email     String?
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  bookings  Booking[]
+}
+
+model Booking {
+  id          Int      @id @default(autoincrement())
+  date        DateTime
+  durationMin Int
+  status      String   @default("scheduled")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  serviceId  Int
+  staffId    Int
+  locationId Int
+  customerId Int
+
+  service  Service  @relation(fields: [serviceId], references: [id])
+  staff    Staff    @relation(fields: [staffId], references: [id])
+  location Location @relation(fields: [locationId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@index([locationId, date])
+  @@index([staffId, date])
+  @@index([date])
+}
+
+model AppSettings {
+  id           Int      @id @default(1)
+  businessName String   @default("")
+  address      String   @default("")
+  logoUrl      String?
+  updatedAt    DateTime @updatedAt
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  permissions Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model LocationSchedule {
+  id         Int      @id @default(autoincrement())
+  locationId Int      @unique
+  schedule   Json
+  updatedAt  DateTime @updatedAt
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+}

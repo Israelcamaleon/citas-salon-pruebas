@@ -1,0 +1,18 @@
+# Dependencias y build
+node_modules/
+.next/
+out/
+
+# Variables de entorno con secretos (NUNCA subir)
+.env
+.env.local
+.env.*.local
+
+# Base de datos local
+prisma/*.db
+prisma/*.db-journal
+
+# Sistema
+.DS_Store
+*.log
+.vercel
