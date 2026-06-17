@@ -125,14 +125,38 @@ export default function BookingsSection() {
 
   const [savingBooking, setSavingBooking] = useState(false);
 
-  // ordenar clientes por nombre para el select
-  const sortedCustomers = useMemo(
-    () =>
-      [...customers].sort((a, b) =>
-        (a.name || "").localeCompare(b.name || "", "es")
-      ),
-    [customers]
+  // Filtro y búsqueda en panel lateral / selector de cliente
+  const [upcomingLocationFilter, setUpcomingLocationFilter] = useState<string>("");
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
+
+  const selectedCustomer = useMemo(
+    () => customers.find((c) => c.id === Number(customerId)),
+    [customers, customerId]
   );
+
+  const filteredCustomers = useMemo(() => {
+    const q = customerSearch.trim().toLowerCase();
+    const base = [...customers].sort((a, b) =>
+      (a.name || "").localeCompare(b.name || "", "es")
+    );
+    if (!q) return base;
+    return base.filter((c) => (c.name || "").toLowerCase().includes(q));
+  }, [customers, customerSearch]);
+
+  const upcomingBookings = useMemo(() => {
+    const now = Date.now();
+    return bookings
+      .filter((b) => {
+        const t = new Date(b.date).getTime();
+        if (Number.isNaN(t) || t < now) return false;
+        if (upcomingLocationFilter && b.locationId !== Number(upcomingLocationFilter)) {
+          return false;
+        }
+        return true;
+      })
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [bookings, upcomingLocationFilter]);
 
   // si cambiamos de servicio, sugerir duración
   useEffect(() => {
@@ -184,8 +208,9 @@ export default function BookingsSection() {
         return;
       }
       const created: Customer = await res.json();
-      // seleccionar al cliente recién creado
       setCustomerId(String(created.id));
+      setCustomerSearch(created.name);
+      setCustomerDropdownOpen(false);
       setShowNewCustomer(false);
       setNewCustomerName("");
       setNewCustomerPhone("");
@@ -378,20 +403,63 @@ export default function BookingsSection() {
               </button>
             </div>
 
-            {/* Selector de cliente existente */}
-            <select
-              className="w-full rounded-md border px-3 py-2 text-sm"
-              value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
-              required
-            >
-              <option value="">Selecciona cliente</option>
-              {sortedCustomers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} · {c.phone || "sin teléfono"}
-                </option>
-              ))}
-            </select>
+            {/* Selector de cliente con búsqueda por nombre */}
+            <div className="relative">
+              <input
+                type="text"
+                className="w-full rounded-md border px-3 py-2 text-sm"
+                placeholder="Buscar cliente por nombre..."
+                value={customerSearch}
+                onChange={(e) => {
+                  setCustomerSearch(e.target.value);
+                  setCustomerId("");
+                  setCustomerDropdownOpen(true);
+                }}
+                onFocus={() => setCustomerDropdownOpen(true)}
+                onBlur={() => {
+                  setTimeout(() => setCustomerDropdownOpen(false), 150);
+                }}
+                required={!customerId}
+                autoComplete="off"
+              />
+              {selectedCustomer && customerId && (
+                <p className="mt-1 text-xs text-gray-600">
+                  Seleccionado: {selectedCustomer.name}
+                  {selectedCustomer.phone ? ` · ${selectedCustomer.phone}` : ""}
+                </p>
+              )}
+              {customerDropdownOpen && filteredCustomers.length > 0 && (
+                <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-md border bg-white shadow-lg text-sm">
+                  {filteredCustomers.slice(0, 50).map((c) => (
+                    <li key={c.id}>
+                      <button
+                        type="button"
+                        className="w-full px-3 py-2 text-left hover:bg-gray-100"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setCustomerId(String(c.id));
+                          setCustomerSearch(c.name);
+                          setCustomerDropdownOpen(false);
+                        }}
+                      >
+                        {c.name}
+                        {c.phone ? ` · ${c.phone}` : " · sin teléfono"}
+                      </button>
+                    </li>
+                  ))}
+                  {filteredCustomers.length > 50 && (
+                    <li className="px-3 py-2 text-xs text-gray-500">
+                      Mostrando 50 de {filteredCustomers.length}. Afina la búsqueda.
+                    </li>
+                  )}
+                </ul>
+              )}
+              {customerDropdownOpen && customerSearch.trim() && filteredCustomers.length === 0 && (
+                <p className="absolute z-20 mt-1 w-full rounded-md border bg-white px-3 py-2 text-xs text-gray-500 shadow-lg">
+                  Sin coincidencias para &quot;{customerSearch.trim()}&quot;
+                </p>
+              )}
+            </div>
 
             {/* Formulario inline para crear cliente */}
             {showNewCustomer && (
@@ -454,16 +522,33 @@ export default function BookingsSection() {
           </button>
         </form>
 
-        {/* Resumen de próximas citas (solo lectura, para contexto) */}
+        {/* Próximas citas: solo futuras, ordenadas, filtro por sucursal */}
         <div className="space-y-3 rounded-lg border bg-white p-4 shadow-sm">
-          <h3 className="text-sm font-semibold">Próximas citas</h3>
-          {!bookings.length && (
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-sm font-semibold">Próximas citas</h3>
+            <select
+              className="rounded-md border px-2 py-1 text-xs"
+              value={upcomingLocationFilter}
+              onChange={(e) => setUpcomingLocationFilter(e.target.value)}
+            >
+              <option value="">Todas las sucursales</option>
+              {locations
+                .filter((l) => l.isActive)
+                .map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+          {!upcomingBookings.length && (
             <p className="text-sm text-gray-500">
-              Aún no hay citas agendadas. Empieza creando una a la izquierda.
+              No hay citas futuras
+              {upcomingLocationFilter ? " en esta sucursal" : ""}.
             </p>
           )}
           <ul className="space-y-2 max-h-[380px] overflow-y-auto text-sm">
-            {bookings.map((b) => (
+            {upcomingBookings.map((b) => (
               <li
                 key={b.id}
                 className="flex flex-col rounded-md border px-3 py-2"
