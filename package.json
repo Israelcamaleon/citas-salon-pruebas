@@ -7,10 +7,14 @@
     "build": "prisma generate && next build",
     "start": "next start -p 3000",
     "seed": "node scripts/seed.mjs",
-    "postinstall": "prisma generate"
+    "seed:auth": "dotenv -e .env.local -- node scripts/seed-auth.mjs",
+    "postinstall": "prisma generate",
+    "db:migrate": "dotenv -e .env.local -- prisma migrate deploy",
+    "db:migrate:dev": "dotenv -e .env.local -- prisma migrate dev"
   },
   "dependencies": {
     "@prisma/client": "^6.19.1",
+    "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.2",
     "axios": "1.11.0",
     "clsx": "2.1.1",
@@ -28,6 +32,7 @@
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",
     "autoprefixer": "^10.4.22",
+    "dotenv-cli": "^11.0.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.19",
     "typescript": "5.5.4"

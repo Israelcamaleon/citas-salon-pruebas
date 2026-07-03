@@ -9,6 +9,7 @@ const DEFAULT_ROLES: Omit<Role, "id">[] = [
     permissions: {
       manageBookings: true, manageCustomers: true, manageStaff: true, manageServices: true,
       manageLocations: true, manageReports: true, manageSettings: true, manageRoles: true,
+      manageLoyalty: true, stampCards: true,
     },
   },
   {
@@ -17,6 +18,7 @@ const DEFAULT_ROLES: Omit<Role, "id">[] = [
     permissions: {
       manageBookings: true, manageCustomers: true, manageStaff: true, manageServices: true,
       manageLocations: true, manageReports: true, manageSettings: false, manageRoles: false,
+      manageLoyalty: true, stampCards: true,
     },
   },
   {
@@ -25,6 +27,7 @@ const DEFAULT_ROLES: Omit<Role, "id">[] = [
     permissions: {
       manageBookings: true, manageCustomers: true, manageStaff: false, manageServices: false,
       manageLocations: false, manageReports: false, manageSettings: false, manageRoles: false,
+      manageLoyalty: false, stampCards: true,
     },
   },
 ]

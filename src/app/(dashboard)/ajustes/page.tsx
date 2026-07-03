@@ -31,6 +31,8 @@ const PERMISSIONS: { key: string, label: string }[] = [
   { key: 'manageReports',   label: 'Reportes' },
   { key: 'manageSettings',  label: 'Ajustes' },
   { key: 'manageRoles',     label: 'Roles y permisos' },
+  { key: 'manageLoyalty',   label: 'Programas de lealtad' },
+  { key: 'stampCards',      label: 'Sellar / canjear tarjetas' },
 ]
 
 export default function AjustesPage(){

@@ -47,6 +47,7 @@ Abrir http://localhost:3000
 | `npm run build` | Build de producción |
 | `npm run start` | Servidor de producción |
 | `npm run seed` | Datos de ejemplo en Supabase |
+| `npm run seed:auth` | Admin Supabase + Staff vinculado |
 
 ## Deploy en Vercel
 

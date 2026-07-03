@@ -21,15 +21,17 @@ model Service {
 }
 
 model Staff {
-  id        Int       @id @default(autoincrement())
-  name      String
-  role      String
-  email     String    @unique
-  phone     String?
-  isActive  Boolean   @default(true)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  bookings  Booking[]
+  id                  Int                  @id @default(autoincrement())
+  name                String
+  role                String
+  email               String               @unique
+  phone               String?
+  authUserId          String?              @unique
+  isActive            Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  bookings            Booking[]
+  loyaltyTransactions LoyaltyTransaction[]
 }
 
 model Location {
@@ -45,14 +47,16 @@ model Location {
 }
 
 model Customer {
-  id        Int       @id @default(autoincrement())
-  name      String
-  phone     String?
-  email     String?
-  notes     String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  bookings  Booking[]
+  id              Int                @id @default(autoincrement())
+  name            String
+  phone           String?
+  email           String?
+  notes           String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  bookings        Booking[]
+  loyaltyCards    LoyaltyCard[]
+  loyaltyCouponUses LoyaltyCouponUse[]
 }
 
 model Booking {
@@ -101,4 +105,99 @@ model LocationSchedule {
   schedule   Json
   updatedAt  DateTime @updatedAt
   location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+}
+
+// ─── Loyalty submodule ───────────────────────────────────────────────────────
+
+enum LoyaltyProgramType {
+  STAMP
+  DISCOUNT
+  GIFT
+  COUPON
+  PREPAID
+  CASHBACK
+  SERVICE
+}
+
+enum LoyaltyCardStatus {
+  ACTIVE
+  REDEEMED
+  EXPIRED
+  BLOCKED
+}
+
+enum LoyaltyTransactionType {
+  STAMP
+  REDEEM
+  LOAD
+  DISCOUNT_APPLY
+  COUPON_USE
+  CASHBACK_EARN
+  CASHBACK_REDEEM
+  SERVICE_USE
+}
+
+model LoyaltyProgram {
+  id         Int                @id @default(autoincrement())
+  name       String
+  type       LoyaltyProgramType
+  config     Json
+  color      String             @default("#378ADD")
+  active     Boolean            @default(true)
+  startsAt   DateTime?
+  endsAt     DateTime?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  cards      LoyaltyCard[]
+  couponUses LoyaltyCouponUse[]
+}
+
+model LoyaltyCard {
+  id           Int                @id @default(autoincrement())
+  balance      Int                @default(0)
+  status       LoyaltyCardStatus  @default(ACTIVE)
+  serviceUsage Json?
+  issuedAt     DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  customerId Int
+  programId  Int
+  customer   Customer             @relation(fields: [customerId], references: [id])
+  program    LoyaltyProgram       @relation(fields: [programId], references: [id])
+  transactions LoyaltyTransaction[]
+
+  @@index([customerId])
+  @@index([programId])
+  @@unique([customerId, programId])
+}
+
+model LoyaltyTransaction {
+  id          Int                    @id @default(autoincrement())
+  type        LoyaltyTransactionType
+  amount      Int                    @default(0)
+  purchaseAmt Int?
+  notes       String?
+  createdAt   DateTime               @default(now())
+
+  cardId  Int
+  staffId Int?
+  card    LoyaltyCard @relation(fields: [cardId], references: [id])
+  staff   Staff?      @relation(fields: [staffId], references: [id])
+
+  @@index([cardId])
+  @@index([createdAt])
+}
+
+model LoyaltyCouponUse {
+  id        Int            @id @default(autoincrement())
+  usedCount Int            @default(0)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  programId  Int
+  customerId Int
+  program    LoyaltyProgram @relation(fields: [programId], references: [id])
+  customer   Customer       @relation(fields: [customerId], references: [id])
+
+  @@unique([programId, customerId])
 }

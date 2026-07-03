@@ -15,6 +15,7 @@ export type Staff = {
   email: string
   phone: string | null
   isActive: boolean
+  hasLogin?: boolean
 }
 
 export type Location = {

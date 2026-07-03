@@ -12,6 +12,7 @@ type Staff = {
   email: string
   phone: string | null
   isActive: boolean
+  hasLogin?: boolean
 }
 
 type Role = {
@@ -28,7 +29,7 @@ export default function Staffs(){
 
   // Local edit state
   const [editingId, setEditingId] = useState<number | null>(null)
-  const [editRow, setEditRow] = useState<Partial<Staff>>({})
+  const [editRow, setEditRow] = useState<Partial<Staff> & { password?: string }>({})
 
   const roleOptions = useMemo(() => (roles ?? []).map(r => (
     <option key={r.id} value={r.name}>{r.name}</option>
@@ -43,9 +44,16 @@ export default function Staffs(){
     setEditRow({})
   }
   async function saveEdit(id: number){
-    await axios.patch(`/api/staffs/${id}`, editRow)
-    setEditingId(null); setEditRow({})
-    await mutate()
+    try {
+      const payload: Record<string, unknown> = { ...editRow }
+      if (!payload.password) delete payload.password
+      await axios.patch(`/api/staffs/${id}`, payload)
+      setEditingId(null); setEditRow({})
+      await mutate()
+    } catch (err: unknown) {
+      const msg = axios.isAxiosError(err) ? err.response?.data?.error : "Error"
+      alert(msg || "No se pudo actualizar")
+    }
   }
 
   async function submitNew(e: React.FormEvent<HTMLFormElement>){
@@ -53,13 +61,21 @@ export default function Staffs(){
     const fd = new FormData(e.currentTarget)
     const name  = String(fd.get('name') || '').trim()
     const email = String(fd.get('email') || '').trim()
+    const password = String(fd.get('password') || '')
     const phone = String(fd.get('phone') || '').trim() || null
     const role  = String(fd.get('role') || '').trim()
     if (!name) { alert('Nombre es requerido'); return }
+    if (!email) { alert('Email es requerido'); return }
+    if (password.length < 6) { alert('Contraseña mínimo 6 caracteres'); return }
     if (!role) { alert('Selecciona un rol'); return }
-    await axios.post('/api/staffs', { name, email, phone, role, isActive: true })
-    formRef.current?.reset()
-    await mutate()
+    try {
+      await axios.post('/api/staffs', { name, email, password, phone, role, isActive: true })
+      formRef.current?.reset()
+      await mutate()
+    } catch (err: unknown) {
+      const msg = axios.isAxiosError(err) ? err.response?.data?.error : "Error"
+      alert(msg || "No se pudo crear")
+    }
   }
 
   async function remove(id: number){
@@ -76,15 +92,22 @@ export default function Staffs(){
 
       {/* Crear */}
       <div className="border rounded-lg p-4">
-        <h3 className="font-medium mb-3">Agregar colaborador</h3>
-        <form ref={formRef} onSubmit={submitNew} className="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <h3 className="font-medium mb-1">Agregar colaborador</h3>
+        <p className="text-sm text-gray-600 mb-3">
+          Crea el colaborador y su cuenta de acceso (email + contraseña para iniciar sesión).
+        </p>
+        <form ref={formRef} onSubmit={submitNew} className="grid grid-cols-1 md:grid-cols-6 gap-3">
           <div className="md:col-span-2">
             <div className="label">Nombre *</div>
             <input name="name" className="input" placeholder="Ej. Ana López" required />
           </div>
           <div>
-            <div className="label">Email</div>
-            <input name="email" className="input" type="email" placeholder="ana@ejemplo.com" />
+            <div className="label">Email *</div>
+            <input name="email" className="input" type="email" placeholder="ana@ejemplo.com" required />
+          </div>
+          <div>
+            <div className="label">Contraseña *</div>
+            <input name="password" className="input" type="password" minLength={6} placeholder="Mín. 6 caracteres" required />
           </div>
           <div>
             <div className="label">Teléfono</div>
@@ -103,7 +126,7 @@ export default function Staffs(){
               )}
             </select>
           </div>
-          <div className="md:col-span-5 flex justify-end">
+          <div className="md:col-span-6 flex justify-end">
             <button className="btn btn-primary" type="submit" disabled={!roles}>Agregar</button>
           </div>
         </form>
@@ -119,6 +142,7 @@ export default function Staffs(){
               <th className="py-2 pr-4">Email</th>
               <th className="py-2 pr-4">Teléfono</th>
               <th className="py-2 pr-4">Rol</th>
+              <th className="py-2 pr-4">Acceso</th>
               <th className="py-2 pr-4">Activo</th>
               <th className="py-2 pr-4"></th>
             </tr>
@@ -164,6 +188,13 @@ export default function Staffs(){
                     ) : row.role}
                   </td>
                   <td className="py-2 pr-4">
+                    {row.hasLogin ? (
+                      <span className="text-green-700">Sí</span>
+                    ) : (
+                      <span className="text-amber-700">Sin cuenta</span>
+                    )}
+                  </td>
+                  <td className="py-2 pr-4">
                     {isEditing ? (
                       <input
                         type="checkbox"
@@ -174,14 +205,23 @@ export default function Staffs(){
                   </td>
                   <td className="py-2 pr-4">
                     {isEditing ? (
-                      <>
-                        <button className="btn" onClick={()=>saveEdit(row.id)}>Guardar</button>
-                        <button className="btn" onClick={cancelEdit}>Cancelar</button>
-                      </>
+                      <div className="space-y-1">
+                        <input
+                          className="input text-xs"
+                          type="password"
+                          placeholder="Nueva contraseña (opc.)"
+                          value={editRow.password ?? ''}
+                          onChange={e=>setEditRow(r=>({...r, password: e.currentTarget.value}))}
+                        />
+                        <div className="flex gap-2">
+                          <button type="button" className="btn text-xs" onClick={()=>saveEdit(row.id)}>Guardar</button>
+                          <button type="button" className="btn text-xs" onClick={cancelEdit}>Cancelar</button>
+                        </div>
+                      </div>
                     ) : (
                       <div className="flex gap-2">
-                        <button className="btn" onClick={()=>startEdit(row)}>Editar</button>
-                        <button className="btn" onClick={()=>remove(row.id)}>Eliminar</button>
+                        <button type="button" className="btn text-xs" onClick={()=>startEdit(row)}>Editar</button>
+                        <button type="button" className="btn text-xs" onClick={()=>remove(row.id)}>Eliminar</button>
                       </div>
                     )}
                   </td>

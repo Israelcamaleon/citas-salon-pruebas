@@ -2,6 +2,7 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 import { NextResponse } from "next/server"
+import { withAuth } from "@/lib/api-auth"
 import * as staffService from "@/services/staff.service"
 
 function parseId(raw: string | undefined) {
@@ -9,8 +10,10 @@ function parseId(raw: string | undefined) {
   return isNaN(id) ? null : id
 }
 
-export async function GET(_req: Request, context: { params: Promise<{ id: string }> }) {
-  const { id: raw } = await context.params
+type Params = { params: Promise<{ id: string }> }
+
+export async function GET(_req: Request, { params }: Params) {
+  const { id: raw } = await params
   const id = parseId(raw)
   if (id === null) return NextResponse.json({ error: "ID inválido" }, { status: 400 })
 
@@ -19,31 +22,21 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
   return NextResponse.json(row)
 }
 
-export async function PATCH(req: Request, context: { params: Promise<{ id: string }> }) {
-  const { id: raw } = await context.params
+export const PATCH = withAuth(async (req, { params }) => {
+  const { id: raw } = await params
   const id = parseId(raw)
   if (id === null) return NextResponse.json({ error: "ID inválido" }, { status: 400 })
 
-  try {
-    const body = await req.json()
-    const updated = await staffService.updateStaff(id, body)
-    return NextResponse.json(updated)
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "No se pudo actualizar"
-    return NextResponse.json({ error: message }, { status: 500 })
-  }
-}
+  const body = await req.json()
+  const updated = await staffService.updateStaff(id, body)
+  return NextResponse.json(updated)
+}, { permission: "manageStaff" })
 
-export async function DELETE(_req: Request, context: { params: Promise<{ id: string }> }) {
-  const { id: raw } = await context.params
+export const DELETE = withAuth(async (_req, { params }) => {
+  const { id: raw } = await params
   const id = parseId(raw)
   if (id === null) return NextResponse.json({ error: "ID inválido" }, { status: 400 })
 
-  try {
-    await staffService.deleteStaff(id)
-    return NextResponse.json({ ok: true })
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "No se pudo eliminar"
-    return NextResponse.json({ error: message }, { status: 500 })
-  }
-}
+  await staffService.deleteStaff(id)
+  return NextResponse.json({ ok: true })
+}, { permission: "manageStaff" })
