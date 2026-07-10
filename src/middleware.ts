@@ -19,6 +19,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
+  if ((pathname === "/" || pathname === "/book") && !user) {
+    return NextResponse.redirect(new URL("/login", request.url))
+  }
+
+  if (pathname === "/" && user) {
+    return NextResponse.redirect(new URL("/dashboard", request.url))
+  }
+
+  if (pathname === "/book" && user) {
+    return NextResponse.redirect(new URL("/dashboard", request.url))
+  }
+
   if (pathname === "/login" && user) {
     const next = request.nextUrl.searchParams.get("next") || "/dashboard"
     return NextResponse.redirect(new URL(next, request.url))

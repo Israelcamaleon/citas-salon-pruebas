@@ -4,14 +4,13 @@ import useSWR from "swr"
 import axios from "axios"
 import { useState } from "react"
 import type { LoyaltyProgram } from "@/types/loyalty"
-import { LOYALTY_TYPE_COLORS } from "@/lib/loyalty"
+import { LOYALTY_TYPE_COLORS, LOYALTY_TYPE_LABELS, LOYALTY_PROGRAM_TYPES_V1 } from "@/lib/loyalty"
 import CardPreview from "./CardPreview"
 import type { ProgramConfig } from "@/schemas/loyalty/program-config.schema"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
-type ProgramType = "STAMP" | "SERVICE"
-
+type ProgramType = (typeof LOYALTY_PROGRAM_TYPES_V1)[number]
 type ServiceRow = { name: string; total: number; icon: string }
 
 const emptyService = (): ServiceRow => ({ name: "", total: 1, icon: "" })
@@ -31,6 +30,16 @@ export default function LoyaltyPrograms() {
   const [welcomeStamps, setWelcomeStamps] = useState(0)
   const [services, setServices] = useState<ServiceRow[]>([emptyService()])
   const [servicePrice, setServicePrice] = useState(0)
+  const [discountType, setDiscountType] = useState<"percent" | "fixed">("percent")
+  const [discountValue, setDiscountValue] = useState(15)
+  const [minPurchase, setMinPurchase] = useState(0)
+  const [giftBalance, setGiftBalance] = useState(500)
+  const [giftRechargeable, setGiftRechargeable] = useState(true)
+  const [couponCode, setCouponCode] = useState("PROMO")
+  const [couponDiscount, setCouponDiscount] = useState(20)
+  const [prepaidMin, setPrepaidMin] = useState(200)
+  const [prepaidBonus, setPrepaidBonus] = useState(5)
+  const [cashbackPercent, setCashbackPercent] = useState(3)
   const [saving, setSaving] = useState(false)
 
   function resetForm() {
@@ -51,47 +60,77 @@ export default function LoyaltyPrograms() {
     setType(p.type as ProgramType)
     setColor(p.color)
     setActive(p.active)
-    if (p.config.type === "STAMP") {
-      setStampsNeeded(p.config.stampsNeeded)
-      setWelcomeStamps(p.config.welcomeStamps)
-    } else if (p.config.type === "SERVICE") {
-      setServices(
-        p.config.services.map((s) => ({
-          name: s.name,
-          total: s.total,
-          icon: s.icon ?? "",
-        }))
-      )
-      setServicePrice(p.config.price ?? 0)
+    const c = p.config
+    if (c.type === "STAMP") {
+      setStampsNeeded(c.stampsNeeded)
+      setWelcomeStamps(c.welcomeStamps)
+    } else if (c.type === "SERVICE") {
+      setServices(c.services.map((s) => ({ name: s.name, total: s.total, icon: s.icon ?? "" })))
+      setServicePrice(c.price ?? 0)
+    } else if (c.type === "DISCOUNT") {
+      setDiscountType(c.discountType)
+      setDiscountValue(c.value)
+      setMinPurchase(c.minPurchase ?? 0)
+    } else if (c.type === "GIFT") {
+      setGiftBalance(c.initialBalance)
+      setGiftRechargeable(c.rechargeable)
+    } else if (c.type === "COUPON") {
+      setCouponCode(c.code)
+      setCouponDiscount(c.discount)
+    } else if (c.type === "PREPAID") {
+      setPrepaidMin(c.minLoad)
+      setPrepaidBonus(c.bonusPercent)
+    } else if (c.type === "CASHBACK") {
+      setCashbackPercent(c.percent)
+      setMinPurchase(c.minPurchase ?? 0)
     }
   }
 
   function buildConfig(): ProgramConfig {
-    if (type === "STAMP") {
-      return {
-        type: "STAMP",
-        stampsNeeded,
-        welcomeStamps,
-      }
-    }
-    return {
-      type: "SERVICE",
-      services: services
-        .filter((s) => s.name.trim())
-        .map((s) => ({
-          name: s.name.trim(),
-          total: Number(s.total) || 1,
-          icon: s.icon.trim() || undefined,
-        })),
-      price: servicePrice > 0 ? servicePrice : undefined,
+    switch (type) {
+      case "STAMP":
+        return { type: "STAMP", stampsNeeded, welcomeStamps }
+      case "SERVICE":
+        return {
+          type: "SERVICE",
+          services: services.filter((s) => s.name.trim()).map((s) => ({
+            name: s.name.trim(),
+            total: Number(s.total) || 1,
+            icon: s.icon.trim() || undefined,
+          })),
+          price: servicePrice > 0 ? servicePrice : undefined,
+        }
+      case "DISCOUNT":
+        return {
+          type: "DISCOUNT",
+          discountType,
+          value: discountValue,
+          minPurchase: minPurchase || undefined,
+        }
+      case "GIFT":
+        return { type: "GIFT", initialBalance: giftBalance, rechargeable: giftRechargeable }
+      case "COUPON":
+        return { type: "COUPON", code: couponCode, discount: couponDiscount, usesPerCustomer: 1 }
+      case "PREPAID":
+        return { type: "PREPAID", minLoad: prepaidMin, bonusPercent: prepaidBonus }
+      case "CASHBACK":
+        return {
+          type: "CASHBACK",
+          percent: cashbackPercent,
+          minPurchase: minPurchase || undefined,
+        }
     }
   }
 
   const previewConfig = buildConfig()
   const previewValid =
-    previewConfig.type === "STAMP"
-      ? previewConfig.stampsNeeded >= 1
-      : previewConfig.type === "SERVICE" && previewConfig.services.length > 0
+    (previewConfig.type === "STAMP" && previewConfig.stampsNeeded >= 1) ||
+    (previewConfig.type === "SERVICE" && previewConfig.services.length > 0) ||
+    previewConfig.type === "DISCOUNT" ||
+    previewConfig.type === "GIFT" ||
+    previewConfig.type === "COUPON" ||
+    previewConfig.type === "PREPAID" ||
+    previewConfig.type === "CASHBACK"
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -108,11 +147,8 @@ export default function LoyaltyPrograms() {
     setSaving(true)
     try {
       const payload = { name: name.trim(), type, config, color, active }
-      if (editingId) {
-        await axios.put(`/api/loyalty/programs/${editingId}`, payload)
-      } else {
-        await axios.post("/api/loyalty/programs", payload)
-      }
+      if (editingId) await axios.put(`/api/loyalty/programs/${editingId}`, payload)
+      else await axios.post("/api/loyalty/programs", payload)
       resetForm()
       await mutate()
     } catch (err: unknown) {
@@ -134,153 +170,174 @@ export default function LoyaltyPrograms() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-600">
-        Crea programas de sellos o paquetes de servicios. Solo STAMP y SERVICE en V1.
+      <p className="text-sm text-lh-muted">
+        Crea programas de lealtad. El preview se actualiza al instante — como en el prototipo.
       </p>
 
       <div className="grid lg:grid-cols-2 gap-4">
-        <form onSubmit={handleSubmit} className="space-y-3 border rounded-lg p-4 bg-white">
-          <h3 className="font-medium">
-            {editingId ? "Editar programa" : "Nuevo programa"}
+        <form onSubmit={handleSubmit} className="card space-y-3">
+          <h3 className="font-semibold text-sm">
+            {editingId ? "Editar programa" : "Nueva tarjeta"}
           </h3>
 
           <label className="flex flex-col gap-1">
             <span className="label">Nombre</span>
-            <input
-              className="input"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ej. Café gratis"
-              required
-            />
+            <input className="input" value={name} onChange={(e) => setName(e.target.value)} required />
           </label>
 
-          <label className="flex flex-col gap-1">
-            <span className="label">Tipo</span>
-            <select
-              className="input"
-              value={type}
-              disabled={!!editingId}
-              onChange={(e) => {
-                const t = e.target.value as ProgramType
-                setType(t)
-                setColor(LOYALTY_TYPE_COLORS[t])
-              }}
-            >
-              <option value="STAMP">Sellos (STAMP)</option>
-              <option value="SERVICE">Paquete de servicios</option>
-            </select>
-          </label>
+          <div>
+            <span className="label mb-2 block">Tipo</span>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {LOYALTY_PROGRAM_TYPES_V1.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  disabled={!!editingId}
+                  onClick={() => {
+                    setType(t)
+                    setColor(LOYALTY_TYPE_COLORS[t])
+                  }}
+                  className={`flex items-center gap-1.5 text-left text-xs font-semibold rounded-[10px] border-2 px-3 py-2 transition-all ${
+                    type === t
+                      ? "border-current"
+                      : "border-lh-border bg-lh-card hover:border-[#aac9ef] hover:bg-[#f0f7ff]"
+                  }`}
+                  style={
+                    type === t
+                      ? {
+                          borderColor: LOYALTY_TYPE_COLORS[t],
+                          background: `${LOYALTY_TYPE_COLORS[t]}14`,
+                          color: LOYALTY_TYPE_COLORS[t],
+                        }
+                      : undefined
+                  }
+                >
+                  <span
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                    style={{ background: LOYALTY_TYPE_COLORS[t] }}
+                  />
+                  {LOYALTY_TYPE_LABELS[t]}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {type === "STAMP" && (
             <div className="grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-1">
                 <span className="label">Sellos necesarios</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={50}
-                  className="input"
-                  value={stampsNeeded}
-                  onChange={(e) => setStampsNeeded(Number(e.target.value))}
-                />
+                <input type="number" min={1} className="input" value={stampsNeeded} onChange={(e) => setStampsNeeded(Number(e.target.value))} />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="label">Sellos de bienvenida</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={20}
-                  className="input"
-                  value={welcomeStamps}
-                  onChange={(e) => setWelcomeStamps(Number(e.target.value))}
-                />
+                <span className="label">Bienvenida</span>
+                <input type="number" min={0} className="input" value={welcomeStamps} onChange={(e) => setWelcomeStamps(Number(e.target.value))} />
               </label>
             </div>
           )}
 
           {type === "SERVICE" && (
             <div className="space-y-2">
-              <span className="label">Servicios incluidos</span>
               {services.map((row, i) => (
-                <div key={i} className="grid grid-cols-6 gap-2 items-center">
-                  <input
-                    className="input col-span-2"
-                    placeholder="Nombre"
-                    value={row.name}
-                    onChange={(e) => {
-                      const next = [...services]
-                      next[i] = { ...next[i], name: e.target.value }
-                      setServices(next)
-                    }}
-                  />
-                  <input
-                    type="number"
-                    min={1}
-                    className="input col-span-1"
-                    placeholder="Cant."
-                    value={row.total}
-                    onChange={(e) => {
-                      const next = [...services]
-                      next[i] = { ...next[i], total: Number(e.target.value) }
-                      setServices(next)
-                    }}
-                  />
-                  <input
-                    className="input col-span-1"
-                    placeholder="Icono"
-                    value={row.icon}
-                    onChange={(e) => {
-                      const next = [...services]
-                      next[i] = { ...next[i], icon: e.target.value }
-                      setServices(next)
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="btn text-sm col-span-2"
-                    onClick={() => setServices(services.filter((_, j) => j !== i))}
-                  >
-                    Quitar
-                  </button>
+                <div key={i} className="grid grid-cols-6 gap-2">
+                  <input className="input col-span-2" placeholder="Nombre" value={row.name} onChange={(e) => {
+                    const next = [...services]; next[i] = { ...next[i], name: e.target.value }; setServices(next)
+                  }} />
+                  <input type="number" min={1} className="input" value={row.total} onChange={(e) => {
+                    const next = [...services]; next[i] = { ...next[i], total: Number(e.target.value) }; setServices(next)
+                  }} />
+                  <input className="input" placeholder="Icono" value={row.icon} onChange={(e) => {
+                    const next = [...services]; next[i] = { ...next[i], icon: e.target.value }; setServices(next)
+                  }} />
+                  <button type="button" className="btn col-span-2" onClick={() => setServices(services.filter((_, j) => j !== i))}>Quitar</button>
                 </div>
               ))}
-              <button
-                type="button"
-                className="btn text-sm"
-                onClick={() => setServices([...services, emptyService()])}
-              >
-                + Servicio
-              </button>
+              <button type="button" className="btn text-sm" onClick={() => setServices([...services, emptyService()])}>+ Servicio</button>
               <label className="flex flex-col gap-1">
-                <span className="label">Precio del paquete (opcional)</span>
-                <input
-                  type="number"
-                  min={0}
-                  className="input"
-                  value={servicePrice}
-                  onChange={(e) => setServicePrice(Number(e.target.value))}
-                />
+                <span className="label">Precio paquete (opc.)</span>
+                <input type="number" min={0} className="input" value={servicePrice} onChange={(e) => setServicePrice(Number(e.target.value))} />
+              </label>
+            </div>
+          )}
+
+          {type === "DISCOUNT" && (
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex flex-col gap-1">
+                <span className="label">Tipo</span>
+                <select className="input" value={discountType} onChange={(e) => setDiscountType(e.target.value as "percent" | "fixed")}>
+                  <option value="percent">Porcentaje</option>
+                  <option value="fixed">Monto fijo</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="label">Valor</span>
+                <input type="number" min={0} className="input" value={discountValue} onChange={(e) => setDiscountValue(Number(e.target.value))} />
+              </label>
+              <label className="flex flex-col gap-1 col-span-2">
+                <span className="label">Compra mínima</span>
+                <input type="number" min={0} className="input" value={minPurchase} onChange={(e) => setMinPurchase(Number(e.target.value))} />
+              </label>
+            </div>
+          )}
+
+          {type === "GIFT" && (
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex flex-col gap-1">
+                <span className="label">Saldo inicial</span>
+                <input type="number" min={0} className="input" value={giftBalance} onChange={(e) => setGiftBalance(Number(e.target.value))} />
+              </label>
+              <label className="flex items-center gap-2 mt-5">
+                <input type="checkbox" checked={giftRechargeable} onChange={(e) => setGiftRechargeable(e.target.checked)} />
+                <span className="text-sm">Recargable</span>
+              </label>
+            </div>
+          )}
+
+          {type === "COUPON" && (
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex flex-col gap-1">
+                <span className="label">Código</span>
+                <input className="input" value={couponCode} onChange={(e) => setCouponCode(e.target.value)} />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="label">Descuento %</span>
+                <input type="number" min={0} className="input" value={couponDiscount} onChange={(e) => setCouponDiscount(Number(e.target.value))} />
+              </label>
+            </div>
+          )}
+
+          {type === "PREPAID" && (
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex flex-col gap-1">
+                <span className="label">Recarga mínima</span>
+                <input type="number" min={0} className="input" value={prepaidMin} onChange={(e) => setPrepaidMin(Number(e.target.value))} />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="label">Bonus %</span>
+                <input type="number" min={0} max={100} className="input" value={prepaidBonus} onChange={(e) => setPrepaidBonus(Number(e.target.value))} />
+              </label>
+            </div>
+          )}
+
+          {type === "CASHBACK" && (
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex flex-col gap-1">
+                <span className="label">Porcentaje</span>
+                <input type="number" min={0} max={100} className="input" value={cashbackPercent} onChange={(e) => setCashbackPercent(Number(e.target.value))} />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="label">Compra mínima</span>
+                <input type="number" min={0} className="input" value={minPurchase} onChange={(e) => setMinPurchase(Number(e.target.value))} />
               </label>
             </div>
           )}
 
           <label className="flex flex-col gap-1">
             <span className="label">Color</span>
-            <input
-              type="color"
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-              className="h-10 w-20 rounded cursor-pointer"
-            />
+            <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-10 w-20 rounded cursor-pointer" />
           </label>
 
           <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={active}
-              onChange={(e) => setActive(e.target.checked)}
-            />
+            <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
             <span className="text-sm">Activo</span>
           </label>
 
@@ -289,9 +346,7 @@ export default function LoyaltyPrograms() {
               {saving ? "Guardando…" : editingId ? "Actualizar" : "Crear"}
             </button>
             {editingId && (
-              <button type="button" className="btn" onClick={resetForm}>
-                Cancelar
-              </button>
+              <button type="button" className="btn" onClick={resetForm}>Cancelar</button>
             )}
           </div>
         </form>
@@ -304,49 +359,57 @@ export default function LoyaltyPrograms() {
               type={type}
               color={color}
               config={previewConfig}
-              balance={type === "STAMP" && previewConfig.type === "STAMP" ? previewConfig.welcomeStamps : 0}
+              balance={
+                type === "STAMP" && previewConfig.type === "STAMP"
+                  ? previewConfig.welcomeStamps
+                  : type === "GIFT" && previewConfig.type === "GIFT"
+                    ? previewConfig.initialBalance
+                    : 0
+              }
             />
           ) : (
-            <div className="card text-sm text-gray-500">Completa el formulario</div>
+            <div className="card text-sm text-lh-muted">Completa el formulario</div>
           )}
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm border rounded-lg bg-white">
+      <div className="overflow-x-auto card !p-0">
+        <table className="w-full text-sm">
           <thead>
-            <tr className="border-b bg-gray-50 text-left">
-              <th className="p-2">Nombre</th>
-              <th className="p-2">Tipo</th>
-              <th className="p-2">Estado</th>
-              <th className="p-2">Acciones</th>
+            <tr className="border-b border-lh-border bg-lh-bg text-left">
+              <th className="p-3 text-[11px] uppercase tracking-wide text-lh-muted">Nombre</th>
+              <th className="p-3 text-[11px] uppercase tracking-wide text-lh-muted">Tipo</th>
+              <th className="p-3 text-[11px] uppercase tracking-wide text-lh-muted">Estado</th>
+              <th className="p-3 text-[11px] uppercase tracking-wide text-lh-muted">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan={4} className="p-4 text-gray-500">Cargando…</td></tr>
+              <tr><td colSpan={4} className="p-4 text-lh-muted">Cargando…</td></tr>
             )}
             {(programs ?? []).map((p) => (
-              <tr key={p.id} className="border-b">
-                <td className="p-2 font-medium">{p.name}</td>
-                <td className="p-2">{p.type}</td>
-                <td className="p-2">
-                  <span className={p.active ? "text-green-700" : "text-gray-400"}>
-                    {p.active ? "Activo" : "Inactivo"}
+              <tr key={p.id} className="border-b border-lh-border hover:bg-[#fafaf8]">
+                <td className="p-3 font-medium">{p.name}</td>
+                <td className="p-3">
+                  <span className="pill" style={{ background: `${p.color}22`, color: p.color }}>
+                    {LOYALTY_TYPE_LABELS[p.type] || p.type}
                   </span>
                 </td>
-                <td className="p-2 flex gap-2">
-                  <button type="button" className="btn text-xs" onClick={() => loadProgram(p)}>
-                    Editar
-                  </button>
+                <td className="p-3">
+                  <span className={`pill ${p.active ? "pill-ok" : "pill-warn"}`}>
+                    {p.active ? "Activo" : "Pausado"}
+                  </span>
+                </td>
+                <td className="p-3 flex gap-2">
+                  <button type="button" className="btn text-xs" onClick={() => loadProgram(p)}>Editar</button>
                   <button type="button" className="btn text-xs" onClick={() => toggleActive(p)}>
-                    {p.active ? "Desactivar" : "Activar"}
+                    {p.active ? "Pausar" : "Activar"}
                   </button>
                 </td>
               </tr>
             ))}
             {!isLoading && (programs ?? []).length === 0 && (
-              <tr><td colSpan={4} className="p-4 text-gray-500">Sin programas</td></tr>
+              <tr><td colSpan={4} className="p-4 text-lh-muted">Sin programas — crea el primero</td></tr>
             )}
           </tbody>
         </table>

@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation"
 import { getCurrentStaff, getSessionUser } from "@/lib/auth"
+import { isLoyaltyEnabled } from "@/lib/loyalty"
+import AppShell from "@/components/layout/AppShell"
 
 export default async function DashboardLayout({
   children,
@@ -12,5 +14,9 @@ export default async function DashboardLayout({
   const staff = await getCurrentStaff()
   if (!staff) redirect("/login?error=staff")
 
-  return <>{children}</>
+  return (
+    <AppShell loyaltyEnabled={isLoyaltyEnabled()}>
+      {children}
+    </AppShell>
+  )
 }

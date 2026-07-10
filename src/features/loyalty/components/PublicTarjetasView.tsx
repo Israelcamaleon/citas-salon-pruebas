@@ -6,13 +6,12 @@ import axios from "axios"
 import type { LoyaltyCard } from "@/types/loyalty"
 import { normalizePhoneMX } from "@/lib/utils/phone"
 import CardPreview from "./CardPreview"
+import { LOYALTY_TYPE_COLORS } from "@/lib/loyalty"
 
 type Customer = { id: number; name: string; phone: string | null }
+type LookupResult = { customer: Customer; cards: LoyaltyCard[] }
 
-type LookupResult = {
-  customer: Customer
-  cards: LoyaltyCard[]
-}
+const PREVIEW_TYPES = ["STAMP", "SERVICE", "GIFT", "DISCOUNT", "COUPON", "PREPAID", "CASHBACK"] as const
 
 export default function PublicTarjetasView() {
   const searchParams = useSearchParams()
@@ -26,15 +25,12 @@ export default function PublicTarjetasView() {
   const [needsName, setNeedsName] = useState(false)
 
   useEffect(() => {
-    if (telParam) {
-      setPhone(telParam)
-    }
+    if (telParam) setPhone(telParam)
   }, [telParam])
 
   async function handleLookup(e?: React.FormEvent) {
     e?.preventDefault()
     setError("")
-
     const norm = normalizePhoneMX(phone)
     if (norm.length !== 10) {
       setError("Ingresa un teléfono de 10 dígitos")
@@ -45,7 +41,6 @@ export default function PublicTarjetasView() {
     try {
       const payload: { phone: string; name?: string } = { phone: norm }
       if (name.trim()) payload.name = name.trim()
-
       const res = await axios.post<LookupResult>("/api/loyalty/public/lookup", payload)
       setResult(res.data)
       setNeedsName(false)
@@ -62,77 +57,72 @@ export default function PublicTarjetasView() {
     }
   }
 
-  function reset() {
-    setResult(null)
-    setError("")
-    setNeedsName(false)
-  }
-
   if (result) {
     const activeCards = result.cards.filter(
-      (c) => c.program && (c.program.type === "STAMP" || c.program.type === "SERVICE")
+      (c) => c.program && PREVIEW_TYPES.includes(c.program.type as typeof PREVIEW_TYPES[number])
     )
 
     return (
-      <div className="max-w-lg mx-auto space-y-6 py-6 px-2">
-        <div className="text-center space-y-1">
-          <h1 className="text-2xl font-semibold">Hola, {result.customer.name}</h1>
-          <p className="text-sm text-gray-600">Tus tarjetas activas</p>
-        </div>
-
-        {activeCards.length === 0 ? (
-          <div className="card text-center text-gray-600">
-            <p>No tienes tarjetas activas aún.</p>
-            <p className="text-sm mt-2">Pide en recepción que te emitan una.</p>
+      <div className="min-h-[100dvh] bg-lh-bg">
+        <div className="sticky top-0 z-10 bg-lh-card border-b border-lh-border px-5 py-3.5 flex items-center gap-3">
+          <button type="button" className="text-xl px-1" onClick={() => setResult(null)}>←</button>
+          <div className="flex-1 min-w-0">
+            <div className="text-[13px] text-lh-muted">{result.customer.phone}</div>
+            <div className="text-base font-semibold truncate">{result.customer.name}</div>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {activeCards.map((card) => {
-              if (!card.program) return null
-              const t = card.program.type
-              if (t !== "STAMP" && t !== "SERVICE") return null
-              return (
-                <CardPreview
-                  key={card.id}
-                  name={card.program.name}
-                  type={t}
-                  color={card.program.color}
-                  config={card.program.config}
-                  balance={card.balance}
-                  serviceUsage={card.serviceUsage}
-                  status={card.status}
-                />
-              )
-            })}
-          </div>
-        )}
-
-        <div className="flex flex-col sm:flex-row gap-2 justify-center">
-          <button type="button" className="btn" onClick={() => handleLookup()}>
+          <button type="button" className="btn text-xs" onClick={() => handleLookup()}>
             Actualizar
           </button>
-          <button type="button" className="btn" onClick={reset}>
-            Cambiar teléfono
-          </button>
+        </div>
+
+        <div className="p-4 space-y-4 max-w-lg mx-auto">
+          {activeCards.length === 0 ? (
+            <div className="text-center text-lh-muted py-16">
+              <div className="text-5xl mb-3">🎁</div>
+              <p>No tienes tarjetas activas aún.</p>
+              <p className="text-sm mt-2">Pide en recepción que te emitan una.</p>
+            </div>
+          ) : (
+            <>
+              <div className="text-[12px] font-semibold text-lh-muted uppercase tracking-wide px-1">
+                Tus programas activos
+              </div>
+              {activeCards.map((card) => {
+                if (!card.program) return null
+                const t = card.program.type as typeof PREVIEW_TYPES[number]
+                return (
+                  <CardPreview
+                    key={card.id}
+                    name={card.program.name}
+                    type={t}
+                    color={card.program.color || LOYALTY_TYPE_COLORS[t]}
+                    config={card.program.config}
+                    balance={card.balance}
+                    serviceUsage={card.serviceUsage}
+                    status={card.status}
+                  />
+                )
+              })}
+            </>
+          )}
         </div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-sm mx-auto space-y-6 py-8 px-2">
-      <div className="text-center space-y-2">
-        <h1 className="text-2xl font-semibold">Mis tarjetas</h1>
-        <p className="text-gray-600 text-sm">
-          Ingresa tu celular para ver tus sellos y beneficios.
-        </p>
-      </div>
+    <div className="min-h-[100dvh] flex flex-col items-center justify-center px-6 bg-lh-bg">
+      <div className="text-5xl mb-4">☕</div>
+      <h1 className="text-[22px] font-bold mb-1.5">Mis tarjetas</h1>
+      <p className="text-sm text-lh-muted mb-10 text-center max-w-xs">
+        Ingresa tu número para ver tus tarjetas de lealtad
+      </p>
 
-      <form onSubmit={handleLookup} className="card space-y-4">
-        <label className="flex flex-col gap-1">
-          <span className="label">Celular</span>
+      <form onSubmit={handleLookup} className="w-full max-w-[320px] space-y-4">
+        <label className="block">
+          <span className="text-[13px] text-lh-muted block mb-2">Celular</span>
           <input
-            className="input"
+            className="w-full px-4 py-3.5 text-xl font-semibold text-center tracking-wide rounded-2xl border-2 border-lh-border bg-lh-card outline-none focus:border-lh-accent"
             type="tel"
             inputMode="numeric"
             placeholder="10 dígitos"
@@ -143,8 +133,8 @@ export default function PublicTarjetasView() {
         </label>
 
         {(needsName || name) && (
-          <label className="flex flex-col gap-1">
-            <span className="label">Nombre</span>
+          <label className="block">
+            <span className="text-[13px] text-lh-muted block mb-2">Nombre</span>
             <input
               className="input"
               placeholder="Tu nombre"
@@ -152,14 +142,17 @@ export default function PublicTarjetasView() {
               onChange={(e) => setName(e.target.value)}
               required={needsName}
             />
-            <span className="text-xs text-gray-500">Solo la primera vez que te registras</span>
           </label>
         )}
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-lh-danger text-center">{error}</p>}
 
-        <button type="submit" className="btn btn-primary w-full" disabled={loading}>
-          {loading ? "Consultando…" : "Ver mis tarjetas"}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-4 text-base font-semibold rounded-2xl bg-lh-accent text-white hover:bg-lh-accent-2 transition-colors disabled:opacity-50"
+        >
+          {loading ? "Consultando…" : "Ver mis tarjetas →"}
         </button>
       </form>
     </div>

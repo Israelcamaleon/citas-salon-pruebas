@@ -51,7 +51,7 @@ export async function createProgram(body: unknown): Promise<LoyaltyProgram> {
   }
 
   const { name, type, config, color, active, startsAt, endsAt } = parsed.data
-  const validatedConfig = parseProgramConfig(type, config, { v1Only: true })
+  const validatedConfig = parseProgramConfig(type, config)
 
   const row = await prisma.loyaltyProgram.create({
     data: {
@@ -88,7 +88,7 @@ export async function updateProgram(id: number, body: unknown): Promise<LoyaltyP
     data.endsAt = parsed.data.endsAt ? new Date(parsed.data.endsAt) : null
   }
   if (parsed.data.config !== undefined) {
-    const validatedConfig = parseProgramConfig(existing.type, parsed.data.config, { v1Only: true })
+    const validatedConfig = parseProgramConfig(existing.type, parsed.data.config)
     data.config = validatedConfig as Prisma.InputJsonValue
   }
 

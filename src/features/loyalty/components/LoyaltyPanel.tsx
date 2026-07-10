@@ -9,13 +9,15 @@ import IssueCard from "./IssueCard"
 export default function LoyaltyPanel() {
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Lealtad</h1>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h1 className="page-title">Lealtad</h1>
+      </div>
       <Tabs
         tabs={[
           { key: "dashboard", label: "Resumen", content: <LoyaltyDashboard /> },
-          { key: "programs", label: "Programas", content: <LoyaltyPrograms /> },
-          { key: "operate", label: "Sellar / Usar", content: <LoyaltyOperate /> },
-          { key: "issue", label: "Emitir tarjeta", content: <IssueCard /> },
+          { key: "programs", label: "Mis tarjetas", content: <LoyaltyPrograms /> },
+          { key: "operate", label: "Sellar / Canjear", content: <LoyaltyOperate /> },
+          { key: "issue", label: "Emitir", content: <IssueCard /> },
         ]}
       />
     </div>

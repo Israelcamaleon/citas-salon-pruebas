@@ -11,7 +11,7 @@ export const createLoyaltyProgramSchema = z.object({
   endsAt: z.string().datetime().optional().nullable(),
 }).refine(
   (data) => (LOYALTY_PROGRAM_TYPES_V1 as readonly string[]).includes(data.type),
-  { message: "Solo STAMP y SERVICE están disponibles en V1", path: ["type"] }
+  { message: "Tipo de programa no válido", path: ["type"] }
 )
 
 export const updateLoyaltyProgramSchema = z.object({
@@ -37,6 +37,40 @@ export const stampSchema = z.object({
 export const serviceUseSchema = z.object({
   cardId: z.number().int().positive(),
   serviceName: z.string().min(1).max(80),
+  notes: z.string().max(200).optional(),
+})
+
+/** Canjear saldo (gift / prepaid / cashback) */
+export const redeemSchema = z.object({
+  cardId: z.number().int().positive(),
+  amount: z.number().positive(),
+  notes: z.string().max(200).optional(),
+})
+
+/** Recargar prepago o gift recargable */
+export const loadSchema = z.object({
+  cardId: z.number().int().positive(),
+  amount: z.number().positive(),
+  notes: z.string().max(200).optional(),
+})
+
+/** Registrar compra con cashback */
+export const cashbackSchema = z.object({
+  cardId: z.number().int().positive(),
+  purchaseAmt: z.number().positive(),
+  notes: z.string().max(200).optional(),
+})
+
+/** Aplicar descuento (registro operativo) */
+export const discountApplySchema = z.object({
+  cardId: z.number().int().positive(),
+  purchaseAmt: z.number().min(0).optional(),
+  notes: z.string().max(200).optional(),
+})
+
+/** Usar cupón */
+export const couponUseSchema = z.object({
+  cardId: z.number().int().positive(),
   notes: z.string().max(200).optional(),
 })
 

@@ -81,7 +81,7 @@ export async function issueCard(body: unknown): Promise<LoyaltyCard> {
   })
   if (existing) throw new Error("El cliente ya tiene una tarjeta de este programa")
 
-  const config = parseProgramConfig(program.type, program.config, { v1Only: true })
+  const config = parseProgramConfig(program.type, program.config)
 
   let balance = 0
   let serviceUsage: Record<string, number> | undefined
@@ -89,9 +89,11 @@ export async function issueCard(body: unknown): Promise<LoyaltyCard> {
   if (config.type === "STAMP") {
     balance = config.welcomeStamps
   } else if (config.type === "SERVICE") {
-    serviceUsage = Object.fromEntries(
-      config.services.map((s) => [s.name, 0])
-    )
+    serviceUsage = Object.fromEntries(config.services.map((s) => [s.name, 0]))
+  } else if (config.type === "GIFT") {
+    balance = config.initialBalance
+  } else if (config.type === "PREPAID" || config.type === "CASHBACK") {
+    balance = 0
   }
 
   const row = await prisma.loyaltyCard.create({

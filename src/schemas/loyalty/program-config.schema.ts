@@ -34,7 +34,7 @@ export const giftConfigSchema = z.object({
   initialBalance: z.number().int().min(0),
   rechargeable: z.boolean().default(false),
   message: z.string().max(200).optional(),
-  image: z.string().url().optional(),
+  image: z.string().optional(),
 })
 
 export const couponConfigSchema = z.object({
@@ -74,18 +74,15 @@ export type StampConfig = z.infer<typeof stampConfigSchema>
 export type ServiceConfig = z.infer<typeof serviceConfigSchema>
 export type ProgramConfig = z.infer<typeof programConfigSchema>
 
-/** Valida config según tipo; V1 solo permite STAMP y SERVICE en creación */
+/** Valida config según tipo de programa */
 export function parseProgramConfig(
   programType: string,
   config: unknown,
-  options?: { v1Only?: boolean }
+  _options?: { v1Only?: boolean }
 ): ProgramConfig {
   const parsed = programConfigSchema.safeParse({ ...(config as object), type: programType })
   if (!parsed.success) {
     throw new Error(parsed.error.errors[0]?.message || "Configuración de programa inválida")
-  }
-  if (options?.v1Only && !["STAMP", "SERVICE"].includes(parsed.data.type)) {
-    throw new Error(`Tipo ${programType} no disponible en esta versión`)
   }
   return parsed.data
 }

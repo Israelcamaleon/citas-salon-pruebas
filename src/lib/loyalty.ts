@@ -1,8 +1,26 @@
 /** Loyalty submodule — feature flag and guards */
 
-export const LOYALTY_PROGRAM_TYPES_V1 = ["STAMP", "SERVICE"] as const
+export const LOYALTY_PROGRAM_TYPES_V1 = [
+  "STAMP",
+  "SERVICE",
+  "GIFT",
+  "DISCOUNT",
+  "COUPON",
+  "PREPAID",
+  "CASHBACK",
+] as const
 
 export type LoyaltyProgramTypeV1 = (typeof LOYALTY_PROGRAM_TYPES_V1)[number]
+
+export const LOYALTY_TYPE_LABELS: Record<string, string> = {
+  STAMP: "Sellos",
+  SERVICE: "Paquete",
+  GIFT: "Regalo",
+  DISCOUNT: "Descuento",
+  COUPON: "Cupón",
+  PREPAID: "Prepago",
+  CASHBACK: "Cashback",
+}
 
 export function isLoyaltyEnabled(): boolean {
   return process.env.LOYALTY_ENABLED === "true"
@@ -27,3 +45,6 @@ export const LOYALTY_TYPE_COLORS: Record<string, string> = {
   PREPAID: "#7F77DD",
   CASHBACK: "#D85A30",
 }
+
+/** Tipos con saldo monetario canjeable / recargable */
+export const BALANCE_TYPES = ["GIFT", "PREPAID", "CASHBACK"] as const

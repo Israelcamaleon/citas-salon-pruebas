@@ -47,11 +47,16 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="max-w-sm mx-auto mt-16">
-      <h1 className="text-2xl font-semibold mb-6 text-center">Iniciar sesión</h1>
-      <form onSubmit={handleSubmit} className="space-y-4 border rounded-lg p-6 bg-white">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 bg-lh-bg">
+      <div className="mb-8 text-center">
+        <div className="text-4xl mb-3">☕</div>
+        <h1 className="text-2xl font-bold tracking-tight">Glam Schedule</h1>
+        <p className="text-sm text-lh-muted mt-1">Acceso del personal</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="w-full max-w-sm card space-y-4 shadow-sm">
         <div>
-          <label className="block text-sm font-medium mb-1" htmlFor="email">Email</label>
+          <label className="label block mb-1.5" htmlFor="email">Email</label>
           <input
             id="email"
             type="email"
@@ -59,11 +64,12 @@ export default function LoginForm() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full border rounded-md px-3 py-2"
+            className="input"
+            placeholder="tu@negocio.com"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1" htmlFor="password">Contraseña</label>
+          <label className="label block mb-1.5" htmlFor="password">Contraseña</label>
           <input
             id="password"
             type="password"
@@ -71,17 +77,11 @@ export default function LoginForm() {
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full border rounded-md px-3 py-2"
+            className="input"
           />
         </div>
-        {error && (
-          <p className="text-sm text-red-600">{error}</p>
-        )}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-black text-white rounded-md py-2 disabled:opacity-50"
-        >
+        {error && <p className="text-sm text-lh-danger">{error}</p>}
+        <button type="submit" disabled={loading} className="btn btn-primary w-full py-3 text-base">
           {loading ? "Entrando…" : "Entrar"}
         </button>
       </form>

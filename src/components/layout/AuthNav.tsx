@@ -25,9 +25,6 @@ export default function AuthNav({ loyaltyEnabled }: Props) {
   if (!me) {
     return (
       <nav className="flex gap-4 items-center">
-        <Link href="/book" className="hover:underline text-sm">
-          Reservar
-        </Link>
         <Link href="/login" className="hover:underline text-sm">
           Iniciar sesión
         </Link>

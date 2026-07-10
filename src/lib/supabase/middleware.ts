@@ -44,19 +44,6 @@ export function isPublicApi(pathname: string, method: string): boolean {
 
   if (pathname === "/api/loyalty/public/lookup" && method === "POST") return true
 
-  if (method === "GET") {
-    if (pathname === "/api/services") return true
-    if (pathname === "/api/staffs") return true
-    if (pathname === "/api/locations") return true
-    if (pathname === "/api/customers") return true
-    if (/^\/api\/locations\/\d+\/schedule$/.test(pathname)) return true
-  }
-
-  if (method === "POST") {
-    if (pathname === "/api/bookings") return true
-    if (pathname === "/api/customers") return true
-  }
-
   return false
 }
 

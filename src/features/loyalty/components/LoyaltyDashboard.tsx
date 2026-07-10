@@ -10,6 +10,11 @@ const TX_LABELS: Record<string, string> = {
   STAMP: "Sello",
   SERVICE_USE: "Uso servicio",
   REDEEM: "Canje",
+  LOAD: "Recarga",
+  CASHBACK_EARN: "Cashback",
+  CASHBACK_REDEEM: "Canje cashback",
+  DISCOUNT_APPLY: "Descuento",
+  COUPON_USE: "Cupón",
 }
 
 export default function LoyaltyDashboard() {
@@ -25,24 +30,33 @@ export default function LoyaltyDashboard() {
     alert("URL copiada al portapapeles")
   }
 
-  if (isLoading) return <p className="text-sm text-gray-500">Cargando…</p>
+  if (isLoading) return <p className="text-sm text-lh-muted">Cargando…</p>
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <StatCard label="Programas activos" value={data?.totalPrograms ?? 0} />
-        <StatCard label="Tarjetas activas" value={data?.activeCards ?? 0} />
-        <StatCard label="Clientes con tarjeta" value={data?.totalCustomers ?? 0} />
+        <div className="stat-card">
+          <div className="lbl">Programas activos</div>
+          <div className="val">{data?.totalPrograms ?? 0}</div>
+        </div>
+        <div className="stat-card">
+          <div className="lbl">Tarjetas activas</div>
+          <div className="val">{data?.activeCards ?? 0}</div>
+        </div>
+        <div className="stat-card">
+          <div className="lbl">Clientes con tarjeta</div>
+          <div className="val">{data?.totalCustomers ?? 0}</div>
+        </div>
       </div>
 
-      <div className="border rounded-lg p-4 bg-white">
-        <h3 className="font-medium mb-2">URL para clientes (QR)</h3>
-        <p className="text-sm text-gray-600 mb-2">
-          Los clientes escanean el QR o abren este enlace para ver sus tarjetas.
-          Opcional: <code className="bg-gray-100 px-1 rounded">?tel=4421234567</code> pre-llena el celular.
+      <div className="card">
+        <h3 className="section-title">URL para clientes (QR)</h3>
+        <p className="text-sm text-lh-muted mb-3">
+          Los clientes abren este enlace o escanean el QR. Opcional:{" "}
+          <code className="bg-lh-bg px-1 rounded text-xs">?tel=4421234567</code>
         </p>
         <div className="flex flex-wrap gap-2 items-center">
-          <code className="text-sm bg-gray-100 px-2 py-1 rounded flex-1 min-w-0 truncate">
+          <code className="text-sm bg-lh-bg px-2 py-1.5 rounded flex-1 min-w-0 truncate border border-lh-border">
             {publicUrl}
           </code>
           <button type="button" className="btn text-sm" onClick={copyQrUrl}>
@@ -51,42 +65,29 @@ export default function LoyaltyDashboard() {
         </div>
       </div>
 
-      <div>
-        <h3 className="font-medium mb-2">Actividad reciente</h3>
+      <div className="card">
+        <h3 className="section-title">Actividad reciente</h3>
         {(data?.recentTransactions ?? []).length === 0 ? (
-          <p className="text-sm text-gray-500">Sin transacciones aún.</p>
+          <p className="text-sm text-lh-muted">Sin transacciones aún.</p>
         ) : (
-          <table className="w-full text-sm border rounded-lg bg-white">
-            <thead>
-              <tr className="border-b bg-gray-50 text-left">
-                <th className="p-2">Fecha</th>
-                <th className="p-2">Tipo</th>
-                <th className="p-2">Cant.</th>
-                <th className="p-2">Staff</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data?.recentTransactions.map((tx) => (
-                <tr key={tx.id} className="border-b">
-                  <td className="p-2">{dayjs(tx.createdAt).format("DD/MM HH:mm")}</td>
-                  <td className="p-2">{TX_LABELS[tx.type] ?? tx.type}</td>
-                  <td className="p-2">{tx.amount}</td>
-                  <td className="p-2">{tx.staff?.name ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="divide-y divide-lh-border">
+            {data?.recentTransactions.map((tx) => (
+              <div key={tx.id} className="flex items-center gap-3 py-2.5">
+                <div className="w-9 h-9 rounded-full bg-lh-accent/15 flex items-center justify-center text-sm flex-shrink-0">
+                  {tx.type === "STAMP" ? "🎫" : tx.type.includes("CASHBACK") ? "💵" : "✓"}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold">{TX_LABELS[tx.type] ?? tx.type}</div>
+                  <div className="text-[11px] text-lh-muted">
+                    {tx.staff?.name ?? "—"} · {dayjs(tx.createdAt).format("DD/MM HH:mm")}
+                  </div>
+                </div>
+                <div className="text-sm font-medium">{tx.amount}</div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
-    </div>
-  )
-}
-
-function StatCard({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="border rounded-xl p-4 bg-white">
-      <p className="text-2xl font-semibold">{value}</p>
-      <p className="text-sm text-gray-600">{label}</p>
     </div>
   )
 }
