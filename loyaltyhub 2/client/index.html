@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#1a1a2e"/>
+<title>Mis tarjetas de lealtad</title>
+<style>
+  :root {
+    --bg: #f5f5f0;
+    --card: #ffffff;
+    --text: #1a1a1a;
+    --muted: #666;
+    --border: rgba(0,0,0,0.09);
+    --radius: 16px;
+    --accent: #378ADD;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         background: var(--bg); color: var(--text); min-height: 100dvh; }
+  .screen { display: none; min-height: 100dvh; flex-direction: column;
+             align-items: center; justify-content: center; padding: 24px; }
+  .screen.active { display: flex; }
+
+  /* ── Login screen ── */
+  .logo { font-size: 48px; margin-bottom: 16px; }
+  .business-name { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .tagline { font-size: 14px; color: var(--muted); margin-bottom: 40px; text-align: center; }
+  .phone-input { width: 100%; max-width: 320px; }
+  .phone-input label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 8px; }
+  .phone-input input {
+    width: 100%; padding: 14px 16px; font-size: 20px; font-weight: 600;
+    border: 2px solid var(--border); border-radius: var(--radius);
+    background: var(--card); color: var(--text); letter-spacing: 1px;
+    outline: none; transition: border-color .2s; text-align: center;
+  }
+  .phone-input input:focus { border-color: var(--accent); }
+  .btn-main {
+    width: 100%; max-width: 320px; margin-top: 16px;
+    padding: 16px; font-size: 16px; font-weight: 600;
+    background: var(--accent); color: white; border: none;
+    border-radius: var(--radius); cursor: pointer; transition: opacity .15s;
+  }
+  .btn-main:active { opacity: .85; }
+  .btn-main:disabled { opacity: .5; cursor: default; }
+  .error-msg { color: #e53e3e; font-size: 13px; margin-top: 10px; min-height: 18px; }
+
+  /* ── Cards screen ── */
+  .cards-screen { align-items: stretch; justify-content: flex-start; padding: 0; }
+  .top-bar {
+    position: sticky; top: 0; z-index: 10; background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px 12px; display: flex; align-items: center; gap: 12px;
+  }
+  .top-bar .back { background: none; border: none; font-size: 22px; cursor: pointer; padding: 4px; }
+  .top-bar .info { flex: 1; }
+  .top-bar .phone-label { font-size: 13px; color: var(--muted); }
+  .top-bar .name-label { font-size: 16px; font-weight: 600; }
+  .cards-list { padding: 20px 16px; display: flex; flex-direction: column; gap: 16px; flex: 1; }
+  .empty-state { text-align: center; color: var(--muted); padding: 60px 20px; }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+
+  /* ── Tarjeta visual ── */
+  .loyalty-card {
+    border-radius: var(--radius); padding: 20px;
+    color: white; position: relative; overflow: hidden;
+    min-height: 140px; cursor: pointer;
+    transition: transform .15s;
+  }
+  .loyalty-card:active { transform: scale(0.98); }
+  .card-type-pill {
+    display: inline-block; background: rgba(255,255,255,0.25);
+    padding: 3px 10px; border-radius: 20px; font-size: 11px;
+    font-weight: 600; letter-spacing: .05em; margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+  .card-program-name { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .card-description { font-size: 13px; opacity: .85; }
+  .card-balance-row {
+    margin-top: 14px; display: flex; align-items: baseline; gap: 6px;
+  }
+  .card-balance { font-size: 28px; font-weight: 800; }
+  .card-balance-label { font-size: 13px; opacity: .8; }
+
+  /* Sellos */
+  .stamps-grid { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
+  .stamp-dot {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.5);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; transition: all .2s;
+  }
+  .stamp-dot.filled { background: rgba(255,255,255,0.9); border-color: white; }
+  .stamp-dot.filled::after { content: '✓'; color: #333; font-weight: 700; font-size: 13px; }
+
+  /* Detalle expandido */
+  .card-detail {
+    background: rgba(0,0,0,0.1); border-radius: 10px;
+    padding: 12px 14px; margin-top: 12px;
+    font-size: 13px; line-height: 1.6;
+  }
+  .card-detail strong { display: block; font-size: 11px; opacity: .7; margin-bottom: 2px; text-transform: uppercase; }
+
+  /* Add to wallet btn */
+  .wallet-btn {
+    width: 100%; margin-top: 10px; padding: 11px;
+    background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.4);
+    border-radius: 12px; color: white; font-size: 14px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: background .15s;
+  }
+  .wallet-btn:active { background: rgba(255,255,255,0.3); }
+
+  .section-title { font-size: 12px; font-weight: 600; color: var(--muted);
+                    letter-spacing: .05em; text-transform: uppercase; padding: 0 4px; }
+  .history-item {
+    background: var(--card); border-radius: 12px; padding: 12px 14px;
+    border: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .history-icon { font-size: 20px; }
+  .history-info { flex: 1; }
+  .history-desc { font-size: 14px; font-weight: 500; }
+  .history-date { font-size: 12px; color: var(--muted); }
+  .history-amount { font-weight: 700; }
+  .history-amount.pos { color: #38a169; }
+  .history-amount.neg { color: #e53e3e; }
+</style>
+</head>
+<body>
+
+<!-- ── Pantalla 1: Ingresar celular ── -->
+<div class="screen active" id="screen-login">
+  <div class="logo" id="biz-logo">☕</div>
+  <div class="business-name" id="biz-name">Café Central</div>
+  <div class="tagline">Ingresa tu número para ver tus tarjetas de lealtad</div>
+
+  <div class="phone-input">
+    <label>Número de celular (10 dígitos)</label>
+    <input type="tel" id="phone-input" placeholder="442 123 4567"
+           maxlength="14" inputmode="numeric" autocomplete="tel"/>
+  </div>
+  <button class="btn-main" id="btn-ver" onclick="verTarjetas()">Ver mis tarjetas →</button>
+  <div class="error-msg" id="login-error"></div>
+</div>
+
+<!-- ── Pantalla 2: Tarjetas del cliente ── -->
+<div class="screen cards-screen" id="screen-cards">
+  <div class="top-bar">
+    <button class="back" onclick="showLogin()">←</button>
+    <div class="info">
+      <div class="phone-label" id="display-phone"></div>
+      <div class="name-label" id="display-name">Mis tarjetas</div>
+    </div>
+  </div>
+  <div class="cards-list" id="cards-list"></div>
+</div>
+
+<script>
+const API = 'http://localhost:3001/api'; // Cambia a tu dominio en producción
+
+// Pre-cargar teléfono desde QR (?tel=...)
+const urlParams = new URLSearchParams(location.search);
+const telFromQR = urlParams.get('tel');
+if (telFromQR) document.getElementById('phone-input').value = formatPhone(telFromQR);
+
+function formatPhone(v) {
+  const digits = v.replace(/\D/g,'');
+  if (digits.length === 10) return `${digits.slice(0,3)} ${digits.slice(3,6)} ${digits.slice(6)}`;
+  return v;
+}
+
+document.getElementById('phone-input').addEventListener('input', e => {
+  e.target.value = formatPhone(e.target.value);
+});
+
+async function verTarjetas() {
+  const raw = document.getElementById('phone-input').value.replace(/\D/g,'');
+  if (raw.length < 10) {
+    document.getElementById('login-error').textContent = 'Ingresa 10 dígitos';
+    return;
+  }
+  const btn = document.getElementById('btn-ver');
+  btn.disabled = true; btn.textContent = 'Buscando...';
+  document.getElementById('login-error').textContent = '';
+
+  try {
+    const res = await fetch(`${API}/customers/lookup`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ phone: raw })
+    });
+    const data = await res.json();
+    renderCards(data, raw);
+  } catch(e) {
+    document.getElementById('login-error').textContent = 'Error de conexión. Intenta de nuevo.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Ver mis tarjetas →';
+  }
+}
+
+function showLogin() {
+  document.getElementById('screen-login').classList.add('active');
+  document.getElementById('screen-cards').classList.remove('active');
+}
+
+function renderCards({ customer, cards }, phone) {
+  document.getElementById('screen-login').classList.remove('active');
+  document.getElementById('screen-cards').classList.add('active');
+  document.getElementById('display-phone').textContent = formatPhone(phone);
+  document.getElementById('display-name').textContent =
+    customer.name ? `Hola, ${customer.name.split(' ')[0]}` : 'Mis tarjetas';
+
+  const list = document.getElementById('cards-list');
+  list.innerHTML = '';
+
+  if (!cards || cards.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">🎁</div>
+        <div>Aún no tienes tarjetas activas.</div>
+        <div style="margin-top:8px;font-size:13px">Pide al cajero que te registre en algún programa.</div>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = '<div class="section-title">Tus programas activos</div>';
+
+  cards.forEach(card => {
+    const cfg = typeof card.config === 'string' ? JSON.parse(card.config) : card.config;
+    const el = document.createElement('div');
+    el.innerHTML = buildCard(card, cfg);
+    list.appendChild(el);
+  });
+}
+
+function buildCard(card, cfg) {
+  const color = card.color || '#378ADD';
+  const typeLabels = { stamp:'Sellos', discount:'Descuento', gift:'Regalo',
+                       coupon:'Cupón', prepaid:'Prepago', cashback:'Cashback' };
+
+  let inner = '';
+
+  if (card.type === 'stamp') {
+    const needed = cfg.stamps_needed || 10;
+    const current = Math.min(Math.floor(parseFloat(card.balance)), needed);
+    const dots = Array.from({length: needed}, (_,i) =>
+      `<div class="stamp-dot${i < current ? ' filled' : ''}"></div>`
+    ).join('');
+    inner = `
+      <div class="card-balance-row">
+        <span class="card-balance">${current}</span>
+        <span class="card-balance-label">/ ${needed} sellos</span>
+      </div>
+      <div class="stamps-grid">${dots}</div>
+      <div class="card-detail">
+        <strong>Premio</strong>${cfg.reward || 'Premio al completar'}
+      </div>`;
+
+  } else if (card.type === 'discount') {
+    const val = cfg.type === 'percent' ? `${cfg.value}%` : `$${cfg.value}`;
+    inner = `
+      <div class="card-balance-row">
+        <span class="card-balance">${val}</span>
+        <span class="card-balance-label">de descuento</span>
+      </div>
+      <div class="card-detail">
+        <strong>Cómo usar</strong>Muestra esta tarjeta al pagar
+        ${cfg.min_purchase > 0 ? `· Mínimo $${cfg.min_purchase}` : ''}
+      </div>`;
+
+  } else if (card.type === 'gift' || card.type === 'prepaid') {
+    const bal = parseFloat(card.balance).toFixed(2);
+    inner = `
+      <div class="card-balance-row">
+        <span class="card-balance">$${bal}</span>
+        <span class="card-balance-label">disponibles</span>
+      </div>
+      <div class="card-detail">
+        <strong>Cómo usar</strong>Muestra esta tarjeta al pagar
+        ${card.type==='prepaid' && cfg.bonus_percent ? `· +${cfg.bonus_percent}% al recargar` : ''}
+      </div>`;
+
+  } else if (card.type === 'coupon') {
+    inner = `
+      <div class="card-balance-row">
+        <span class="card-balance">${cfg.discount}%</span>
+        <span class="card-balance-label">de descuento</span>
+      </div>
+      <div class="card-detail">
+        <strong>Código</strong>${cfg.code || '—'}
+        <strong style="margin-top:6px">Condición</strong>${card.description || 'Ver condiciones con el cajero'}
+      </div>`;
+
+  } else if (card.type === 'cashback') {
+    const bal = parseFloat(card.balance).toFixed(2);
+    inner = `
+      <div class="card-balance-row">
+        <span class="card-balance">$${bal}</span>
+        <span class="card-balance-label">acumulados</span>
+      </div>
+      <div class="card-detail">
+        <strong>Tasa</strong>${cfg.percent}% de regreso en cada compra ≥ $${cfg.min_purchase}
+      </div>`;
+  }
+
+  const isApple = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const walletLabel = isApple ? '🍎 Agregar a Apple Wallet' : '🟢 Agregar a Google Wallet';
+
+  return `
+    <div class="loyalty-card" style="background:${color}">
+      <span class="card-type-pill">${typeLabels[card.type] || card.type}</span>
+      <div class="card-program-name">${card.program_name}</div>
+      <div class="card-description">${card.description || ''}</div>
+      ${inner}
+      <button class="wallet-btn" onclick="addToWallet(${card.id},'${card.type}')">
+        ${walletLabel}
+      </button>
+    </div>`;
+}
+
+async function addToWallet(cardId, type) {
+  // Esta función conecta con tu backend que genera el pass de PassKit
+  // El backend entrega un .pkpass (Apple) o un JWT link (Google)
+  try {
+    const res = await fetch(`${API}/wallet/pass?card_id=${cardId}`);
+    const { pass_url } = await res.json();
+    if (pass_url) window.location.href = pass_url;
+    else alert('Error generando el pass. Intenta de nuevo.');
+  } catch {
+    alert('Wallet no disponible. Muestra esta pantalla al cajero.');
+  }
+}
+
+// Si llegó teléfono por QR, auto-buscar
+if (telFromQR) {
+  setTimeout(() => verTarjetas(), 300);
+}
+</script>
+</body>
+</html>

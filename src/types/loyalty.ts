@@ -5,13 +5,18 @@ export type LoyaltyProgram = {
   id: number
   name: string
   type: LoyaltyProgramType
+  description: string | null
   config: ProgramConfig
   color: string
+  logoUrl: string | null
+  bgUrl: string | null
   active: boolean
   startsAt: string | null
   endsAt: string | null
   createdAt: string
   updatedAt: string
+  cardCount?: number
+  redeemCount?: number
 }
 
 export type LoyaltyCard = {
@@ -24,7 +29,7 @@ export type LoyaltyCard = {
   customerId: number
   programId: number
   customer?: { id: number; name: string; phone: string | null }
-  program?: Pick<LoyaltyProgram, "id" | "name" | "type" | "config" | "color">
+  program?: Pick<LoyaltyProgram, "id" | "name" | "type" | "config" | "color" | "description" | "logoUrl" | "bgUrl">
 }
 
 export type LoyaltyTransaction = {

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from "react"
 import Tabs from "@/components/ui/Tabs"
 import LoyaltyDashboard from "./LoyaltyDashboard"
 import LoyaltyPrograms from "./LoyaltyPrograms"
@@ -7,12 +8,14 @@ import LoyaltyOperate from "./LoyaltyOperate"
 import IssueCard from "./IssueCard"
 
 export default function LoyaltyPanel() {
+  const [tab, setTab] = useState("programs")
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h1 className="page-title">Lealtad</h1>
-      </div>
+      <h1 className="page-title">Mis tarjetas</h1>
       <Tabs
+        activeKey={tab}
+        onActiveChange={setTab}
         tabs={[
           { key: "dashboard", label: "Resumen", content: <LoyaltyDashboard /> },
           { key: "programs", label: "Mis tarjetas", content: <LoyaltyPrograms /> },

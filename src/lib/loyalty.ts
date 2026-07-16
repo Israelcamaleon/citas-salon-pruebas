@@ -14,12 +14,22 @@ export type LoyaltyProgramTypeV1 = (typeof LOYALTY_PROGRAM_TYPES_V1)[number]
 
 export const LOYALTY_TYPE_LABELS: Record<string, string> = {
   STAMP: "Sellos",
-  SERVICE: "Paquete",
-  GIFT: "Regalo",
+  SERVICE: "Prepago servicios",
+  GIFT: "Tarjeta regalo",
   DISCOUNT: "Descuento",
   COUPON: "Cupón",
-  PREPAID: "Prepago",
+  PREPAID: "Prepago saldo",
   CASHBACK: "Cashback",
+}
+
+export const LOYALTY_TYPE_ICONS: Record<string, string> = {
+  STAMP: "🎫",
+  SERVICE: "📋",
+  GIFT: "🎁",
+  DISCOUNT: "🏷️",
+  COUPON: "🎟️",
+  PREPAID: "💳",
+  CASHBACK: "💵",
 }
 
 export function isLoyaltyEnabled(): boolean {

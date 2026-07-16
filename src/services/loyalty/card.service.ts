@@ -14,7 +14,16 @@ function toCard(row: {
   customerId: number
   programId: number
   customer?: { id: number; name: string; phone: string | null }
-  program?: { id: number; name: string; type: string; config: unknown; color: string }
+  program?: {
+    id: number
+    name: string
+    type: string
+    config: unknown
+    color: string
+    description: string | null
+    logoUrl: string | null
+    bgUrl: string | null
+  }
 }): LoyaltyCard {
   return {
     id: row.id,
@@ -33,6 +42,9 @@ function toCard(row: {
           type: row.program.type as LoyaltyProgramType,
           config: parseProgramConfig(row.program.type, row.program.config),
           color: row.program.color,
+          description: row.program.description,
+          logoUrl: row.program.logoUrl,
+          bgUrl: row.program.bgUrl,
         }
       : undefined,
   }
@@ -40,7 +52,18 @@ function toCard(row: {
 
 const cardInclude = {
   customer: { select: { id: true, name: true, phone: true } },
-  program: { select: { id: true, name: true, type: true, config: true, color: true } },
+  program: {
+    select: {
+      id: true,
+      name: true,
+      type: true,
+      config: true,
+      color: true,
+      description: true,
+      logoUrl: true,
+      bgUrl: true,
+    },
+  },
 } as const
 
 export async function listCardsByCustomer(customerId: number): Promise<LoyaltyCard[]> {

@@ -138,18 +138,21 @@ enum LoyaltyTransactionType {
 }
 
 model LoyaltyProgram {
-  id         Int                @id @default(autoincrement())
-  name       String
-  type       LoyaltyProgramType
-  config     Json
-  color      String             @default("#378ADD")
-  active     Boolean            @default(true)
-  startsAt   DateTime?
-  endsAt     DateTime?
-  createdAt  DateTime           @default(now())
-  updatedAt  DateTime           @updatedAt
-  cards      LoyaltyCard[]
-  couponUses LoyaltyCouponUse[]
+  id          Int                @id @default(autoincrement())
+  name        String
+  type        LoyaltyProgramType
+  description String?
+  config      Json
+  color       String             @default("#378ADD")
+  logoUrl     String?
+  bgUrl       String?
+  active      Boolean            @default(true)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  cards       LoyaltyCard[]
+  couponUses  LoyaltyCouponUse[]
 }
 
 model LoyaltyCard {

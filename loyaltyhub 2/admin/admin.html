@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>LoyaltyHub — Administrador</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f4f3ef;--card:#fff;--sidebar:#1a1a2e;--st:#c8c7d4;--acc:#378ADD;--acc2:#185FA5;--tx:#1a1a1a;--mu:#777;--bd:#e8e7e2;--r:12px;--dan:#e53e3e;--ok:#38a169}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--tx);display:flex;height:100vh;overflow:hidden}
+.sb{width:220px;background:var(--sidebar);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.sb-logo{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,.07)}
+.sb-logo h1{color:#fff;font-size:17px;font-weight:700}
+.sb-logo p{color:var(--st);font-size:11px;margin-top:2px}
+.ns{font-size:10px;font-weight:600;color:rgba(255,255,255,.3);padding:14px 18px 5px;letter-spacing:.08em;text-transform:uppercase}
+.ni{display:flex;align-items:center;gap:10px;padding:9px 18px;cursor:pointer;font-size:13px;color:var(--st);border-left:3px solid transparent;transition:all .15s;user-select:none}
+.ni:hover{background:rgba(255,255,255,.05);color:#fff}
+.ni.active{background:rgba(55,138,221,.15);color:#fff;border-left-color:var(--acc)}
+.sb-foot{margin-top:auto;padding:16px 18px;border-top:1px solid rgba(255,255,255,.07)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{background:var(--card);border-bottom:1px solid var(--bd);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar h2{font-size:16px;font-weight:600}
+.content{flex:1;overflow-y:auto;padding:24px}
+.page{display:none}.page.active{display:block}
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.sc{background:var(--card);border-radius:var(--r);padding:16px 18px;border:1px solid var(--bd)}
+.sc .lbl{font-size:12px;color:var(--mu);margin-bottom:6px}
+.sc .val{font-size:26px;font-weight:700;line-height:1}
+.sc .sub{font-size:11px;color:var(--mu);margin-top:4px}
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.sh h3{font-size:15px;font-weight:600}
+.pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+/* CARD VISUAL */
+.pc{border-radius:var(--r);overflow:hidden;color:#fff;position:relative;cursor:pointer;transition:transform .15s,box-shadow .15s;min-height:160px;display:flex;flex-direction:column;justify-content:space-between}
+.pc:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.15)}
+.pc-bg{position:absolute;inset:0;background-size:cover;background-position:center;z-index:0}
+.pc-ov{position:absolute;inset:0;background:rgba(0,0,0,.3);z-index:1}
+.pc-logo{position:absolute;top:12px;right:12px;z-index:2;width:44px;height:44px;border-radius:8px;object-fit:contain;background:rgba(255,255,255,.15);padding:3px}
+.pc-body{position:relative;z-index:2;padding:16px 16px 10px}
+.pc .pt{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:20px;display:inline-block;margin-bottom:8px}
+.pc h4{font-size:16px;font-weight:700;margin-bottom:4px}
+.pc p{font-size:12px;opacity:.85}
+.pc .pm{margin-top:6px;font-size:11px;opacity:.8;line-height:1.6}
+.pc-foot{position:relative;z-index:2;padding:10px 16px;border-top:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:space-between}
+.pc .pa{display:flex;gap:8px}
+.pb{padding:5px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:opacity .15s}
+.pb:hover{opacity:.85}
+.pb-e{background:rgba(255,255,255,.25);color:#fff}
+.pb-p{background:rgba(0,0,0,.2);color:#fff}
+.pb-i{background:rgba(255,255,255,.9);color:#1a1a1a}
+.badge{position:absolute;top:12px;left:12px;z-index:3;width:8px;height:8px;border-radius:50%}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--bd);background:var(--card);color:var(--tx);font-family:inherit;transition:all .15s}
+.btn:hover{background:var(--bg)}
+.btn-p{background:var(--acc);color:#fff;border-color:var(--acc)}
+.btn-p:hover{background:var(--acc2);border-color:var(--acc2)}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-add{display:flex;align-items:center;gap:6px;padding:10px 16px;font-size:13px;font-weight:600;color:var(--acc);cursor:pointer;background:none;border:none;width:100%;font-family:inherit;border-top:1px solid var(--bd)}
+.btn-add:hover{background:var(--bg)}
+.btn-rm{background:none;border:none;cursor:pointer;color:var(--mu);font-size:18px;padding:2px 6px;line-height:1;flex-shrink:0}
+.btn-rm:hover{color:var(--dan)}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:none;align-items:center;justify-content:center;padding:16px}
+.ov.open{display:flex}
+.modal{background:var(--card);border-radius:16px;width:100%;max-width:680px;max-height:94vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.25)}
+.modal-sm{max-width:480px}
+.mh{padding:18px 24px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--card);z-index:2}
+.mh h3{font-size:15px;font-weight:700}
+.mc{background:none;border:none;font-size:20px;cursor:pointer;color:var(--mu)}
+.mb{padding:20px 24px}
+.mf{padding:14px 24px;border-top:1px solid var(--bd);display:flex;justify-content:flex-end;gap:10px;position:sticky;bottom:0;background:var(--card)}
+/* CARD PREVIEW */
+.cprev{border-radius:14px;overflow:hidden;color:#fff;position:relative;min-height:170px;display:flex;flex-direction:column;justify-content:space-between;margin-bottom:20px}
+.cprev-bg{position:absolute;inset:0;background-size:cover;background-position:center;z-index:0}
+.cprev-ov{position:absolute;inset:0;background:rgba(0,0,0,.32);z-index:1}
+.cprev-logo{position:absolute;top:14px;right:14px;z-index:2;width:50px;height:50px;border-radius:10px;object-fit:contain;background:rgba(255,255,255,.15);padding:4px}
+.cprev-body{position:relative;z-index:2;padding:18px 18px 10px}
+.cprev-foot{position:relative;z-index:2;padding:10px 18px;border-top:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:space-between;font-size:12px;opacity:.9}
+/* UPLOAD */
+.upzone{border:2px dashed var(--bd);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.upzone:hover{border-color:var(--acc);background:#f0f7ff}
+.upzone input{display:none}
+.upzone img{max-height:64px;max-width:100%;border-radius:6px;object-fit:contain;margin:0 auto;display:none}
+.upzone .up-rm{display:none;position:absolute;top:4px;right:4px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:11px;align-items:center;justify-content:center}
+/* STAMP & SERVICE */
+.ttabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+.ttab{border:2px solid var(--bd);border-radius:10px;padding:9px 14px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600}
+.ttab:hover{border-color:#aac9ef;background:#f0f7ff}
+.ttab.sel{border-color:var(--acc);background:#eef6ff;color:var(--acc)}
+.ttab .ti{font-size:16px}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
+.fgr{display:flex;flex-direction:column;gap:5px}
+.fgr.full{grid-column:1/-1}
+label{font-size:12px;font-weight:600;color:var(--mu)}
+input,select,textarea{padding:9px 12px;font-size:13px;border:1.5px solid var(--bd);border-radius:8px;background:#fafafa;color:var(--tx);font-family:inherit;transition:border-color .15s;outline:none;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--acc);background:#fff}
+textarea{resize:vertical;min-height:64px}
+input[type=color]{padding:2px 4px;height:40px;cursor:pointer}
+.fdiv{grid-column:1/-1;font-size:11px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;padding:14px 0 8px;border-bottom:1px solid var(--bd);margin-top:4px}
+.stamp-controls{display:flex;align-items:center;gap:12px;grid-column:1/-1;margin-top:4px;flex-wrap:wrap}
+.stamp-controls label{white-space:nowrap;font-size:13px;font-weight:600;color:var(--tx)}
+.stepper{display:flex;align-items:center;border:1.5px solid var(--bd);border-radius:8px;overflow:hidden}
+.stepper button{background:var(--bg);border:none;padding:8px 14px;font-size:16px;cursor:pointer;font-family:inherit;flex-shrink:0}
+.stepper button:hover{background:var(--bd)}
+.stepper input{border:none;border-left:1px solid var(--bd);border-right:1px solid var(--bd);width:60px;text-align:center;font-size:15px;font-weight:700;background:var(--card);padding:8px 4px;outline:none}
+.stamp-tip{grid-column:1/-1;font-size:12px;color:var(--mu);background:var(--bg);padding:10px 14px;border-radius:8px;line-height:1.6}
+.stamp-list{grid-column:1/-1;border:1.5px solid var(--bd);border-radius:10px;overflow:hidden;max-height:340px;overflow-y:auto}
+.stamp-list-hdr{background:var(--bg);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1;border-bottom:1px solid var(--bd)}
+.stamp-list-hdr span{font-size:12px;font-weight:700;color:var(--mu)}
+.sr{display:flex;align-items:center;border-top:1px solid var(--bd);background:var(--card);transition:background .1s}
+.sr:hover{background:#f9f8f4}
+.sr-num{width:46px;font-size:12px;font-weight:700;color:var(--mu);text-align:center;padding:0 6px;flex-shrink:0;border-right:1px solid var(--bd);align-self:stretch;display:flex;align-items:center;justify-content:center}
+.sr-num.on{color:var(--acc);font-size:14px}
+.sr-body{flex:1;display:flex;align-items:center;gap:8px;padding:8px 12px}
+.sr-icon{width:44px;padding:5px 3px;font-size:14px;border:1.5px solid var(--bd);border-radius:6px;background:#fafafa;cursor:pointer;outline:none;text-align:center}
+.sr-icon:focus{border-color:var(--acc)}
+.sr-inp{flex:1;padding:6px 10px;font-size:13px;border:1.5px solid var(--bd);border-radius:6px;background:#fafafa;color:var(--tx);font-family:inherit;outline:none}
+.sr-inp:focus{border-color:var(--acc);background:#fff}
+.sr-inp.has{border-color:#93c5fd;background:#eff6ff}
+.sr-type{width:130px;padding:6px 8px;font-size:12px;border:1.5px solid var(--bd);border-radius:6px;background:#fafafa;color:var(--tx);font-family:inherit;outline:none;cursor:pointer}
+.sr-type:focus{border-color:var(--acc)}
+.sr-val{width:72px;padding:6px 8px;font-size:13px;font-weight:600;text-align:center;border:1.5px solid var(--bd);border-radius:6px;background:#fafafa;color:var(--tx);font-family:inherit;outline:none}
+.sr-val:focus{border-color:var(--acc)}
+.sr-val.off{opacity:.35;pointer-events:none}
+.svc-box{grid-column:1/-1;border:1.5px solid var(--bd);border-radius:10px;overflow:hidden;margin-top:4px}
+.svc-hdr{background:var(--bg);padding:10px 14px;font-size:12px;font-weight:700;color:var(--mu);display:flex;justify-content:space-between}
+.svc-row{display:flex;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid var(--bd);background:var(--card)}
+.svc-row:hover{background:#fafaf8}
+.svc-icon{width:44px;padding:5px 3px;font-size:16px;text-align:center;border:1.5px solid var(--bd);border-radius:6px;cursor:pointer;outline:none;background:#fafafa}
+.svc-name{flex:1;padding:7px 10px;font-size:13px;border:1.5px solid var(--bd);border-radius:6px;background:#fafafa;color:var(--tx);font-family:inherit;outline:none}
+.svc-name:focus{border-color:var(--acc);background:#fff}
+.svc-qty-wrap{display:flex;align-items:center;border:1.5px solid var(--bd);border-radius:8px;overflow:hidden;flex-shrink:0}
+.svc-qty-wrap button{background:var(--bg);border:none;padding:6px 10px;font-size:15px;cursor:pointer;font-family:inherit;flex-shrink:0}
+.svc-qty-wrap button:hover{background:var(--bd)}
+.svc-qty-wrap input{border:none;border-left:1px solid var(--bd);border-right:1px solid var(--bd);width:52px;text-align:center;font-size:14px;font-weight:700;background:var(--card);padding:6px 2px;outline:none}
+.svc-unit{font-size:11px;color:var(--mu);flex-shrink:0}
+.img-picker{display:flex;flex-wrap:wrap;gap:8px;grid-column:1/-1}
+.img-opt{border:2px solid var(--bd);border-radius:10px;padding:10px;cursor:pointer;transition:all .15s;font-size:24px;min-width:50px;text-align:center}
+.img-opt:hover{border-color:#aac9ef;background:#f0f7ff}
+.img-opt.sel{border-color:var(--acc);background:#eef6ff}
+.tw{background:var(--card);border-radius:var(--r);border:1px solid var(--bd);overflow:hidden}
+.sb-bar{padding:12px 16px;border-bottom:1px solid var(--bd)}
+.sb-bar input{padding:8px 12px;font-size:13px;border:1.5px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font-family:inherit;outline:none;width:100%}
+.sb-bar input:focus{border-color:var(--acc);background:#fff}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;font-weight:700;color:var(--mu);text-align:left;padding:10px 16px;background:var(--bg);text-transform:uppercase;letter-spacing:.05em}
+td{padding:11px 16px;font-size:13px;border-top:1px solid var(--bd)}
+tr:hover td{background:#fafaf8}
+.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.pill-ok{background:#ecfdf5;color:#166534}
+.pill-pa{background:#fffbeb;color:#92400e}
+.rw{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.rc{background:var(--card);border-radius:var(--r);border:1px solid var(--bd);padding:20px}
+.rb{background:var(--bg);border-radius:10px;padding:20px;text-align:center;min-height:110px;display:flex;flex-direction:column;align-items:center;justify-content:center;margin-top:16px}
+.rb-ok{background:#ecfdf5;border:1.5px solid #86efac}
+.eg{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.ec{background:var(--card);border-radius:var(--r);border:1px solid var(--bd);padding:16px;display:flex;align-items:center;gap:14px}
+.ea{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0}
+.toast{position:fixed;bottom:24px;right:24px;background:#1a1a2e;color:#fff;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;transform:translateY(80px);opacity:0;transition:all .3s;max-width:360px}
+.toast.show{transform:translateY(0);opacity:1}
+/* ISSUE CARD PREVIEW */
+.icard{border-radius:14px;overflow:hidden;color:#fff;position:relative;min-height:155px;display:flex;flex-direction:column;justify-content:space-between;margin-bottom:16px}
+.icard-bg{position:absolute;inset:0;background-size:cover;background-position:center;z-index:0}
+.icard-ov{position:absolute;inset:0;background:rgba(0,0,0,.32);z-index:1}
+.icard-logo{position:absolute;top:12px;right:12px;z-index:2;width:44px;height:44px;border-radius:8px;object-fit:contain;background:rgba(255,255,255,.15);padding:3px}
+.icard-body{position:relative;z-index:2;padding:16px 16px 8px}
+.icard-foot{position:relative;z-index:2;padding:10px 16px;border-top:1px solid rgba(255,255,255,.2);font-size:12px;opacity:.9}
+</style>
+</head>
+<body>
+<div class="sb">
+  <div class="sb-logo"><h1 id="biz-logo">&#9749; LoyaltyHub</h1><p>Panel de administrador</p></div>
+  <span class="ns">General</span>
+  <div class="ni active" onclick="nav('dashboard',this)">&#128202; Dashboard</div>
+  <div class="ni" onclick="nav('programas',this)">&#127924; Mis tarjetas</div>
+  <span class="ns">Operación</span>
+  <div class="ni" onclick="nav('canjear',this)">&#9989; Sellar / Canjear</div>
+  <div class="ni" onclick="nav('clientes',this)">&#128101; Clientes</div>
+  <div class="ni" onclick="nav('qr',this)">&#128242; Código QR</div>
+  <span class="ns">Análisis</span>
+  <div class="ni" onclick="nav('reportes',this)">&#128200; Reportes</div>
+  <span class="ns">Sistema</span>
+  <div class="ni" onclick="nav('empleados',this)">&#128100; Empleados</div>
+  <div class="ni" onclick="nav('config',this)">&#9881;&#65039; Configuración</div>
+  <div class="sb-foot">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:32px;height:32px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700">IS</div>
+      <div><div style="color:#fff;font-size:12px;font-weight:600">Israel</div><div style="color:var(--st);font-size:11px">Superadmin</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h2 id="page-title">Dashboard</h2>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-sm" onclick="nav('qr',document.querySelectorAll('.ni')[4])">&#128242; QR</button>
+      <button class="btn btn-p btn-sm" onclick="openCreate()">+ Nueva tarjeta</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="page active" id="p-dashboard">
+      <div class="sg">
+        <div class="sc"><div class="lbl">Clientes activos</div><div class="val">1,284</div><div class="sub" style="color:var(--ok)">&#8593; 12% este mes</div></div>
+        <div class="sc"><div class="lbl">Tarjetas activas</div><div class="val" id="d-progs">&#8212;</div><div class="sub">programas</div></div>
+        <div class="sc"><div class="lbl">Canjes hoy</div><div class="val">47</div><div class="sub" style="color:var(--ok)">&#8593; 8% vs ayer</div></div>
+        <div class="sc"><div class="lbl">Saldo prepago</div><div class="val">$24,300</div><div class="sub">en circulación</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div style="background:var(--card);border-radius:var(--r);border:1px solid var(--bd);padding:18px"><div style="font-size:13px;font-weight:700;margin-bottom:14px">Actividad reciente</div><div id="d-feed"></div></div>
+        <div style="background:var(--card);border-radius:var(--r);border:1px solid var(--bd);padding:18px"><div style="font-size:13px;font-weight:700;margin-bottom:14px">Rendimiento</div><div id="d-bars"></div></div>
+      </div>
+    </div>
+    <div class="page" id="p-programas">
+      <div class="sh"><h3>Mis tarjetas de lealtad</h3><button class="btn btn-p" onclick="openCreate()">+ Crear tarjeta</button></div>
+      <div class="pg" id="prog-grid"></div>
+    </div>
+    <div class="page" id="p-canjear">
+      <div class="rw">
+        <div class="rc">
+          <div style="font-size:14px;font-weight:700;margin-bottom:16px">Sellar / Canjear</div>
+          <div class="fgr" style="margin-bottom:12px"><label>Número de celular</label><input type="tel" id="r-phone" placeholder="442 123 4567" oninput="buscarCliente()"/></div>
+          <div id="r-cinfo" style="display:none;background:var(--bg);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:13px"><strong id="r-cname"></strong><br><span style="color:var(--mu)" id="r-cph"></span></div>
+          <div class="fgr" style="margin-bottom:12px"><label>Programa</label><select id="r-prog" onchange="onProgChange()"><option value="">&#8212; Selecciona &#8212;</option></select></div>
+          <div id="r-extra" style="margin-bottom:12px"></div>
+          <button class="btn btn-p" style="width:100%" onclick="aplicarCanje()">&#9989; Aplicar beneficio</button>
+        </div>
+        <div>
+          <div class="rb" id="r-result"><div style="font-size:34px;margin-bottom:8px">&#128242;</div><div style="font-size:13px;color:var(--mu)">Ingresa los datos para aplicar un beneficio</div></div>
+          <div style="margin-top:16px"><div style="font-size:11px;font-weight:700;color:var(--mu);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">Últimos canjes</div><div id="r-recent"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="page" id="p-clientes">
+      <div class="tw">
+        <div class="sb-bar"><input type="text" placeholder="Buscar por nombre o celular..." oninput="filterC(this.value)"/></div>
+        <table><thead><tr><th>Cliente</th><th>Celular</th><th>Tarjetas</th><th>Última visita</th><th>Estado</th><th></th></tr></thead><tbody id="c-tbody"></tbody></table>
+      </div>
+    </div>
+    <div class="page" id="p-qr">
+      <div style="display:flex;gap:24px;align-items:flex-start">
+        <div style="background:var(--card);border-radius:var(--r);border:1px solid var(--bd);padding:28px;text-align:center;max-width:300px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px">QR del negocio</div>
+          <div style="font-size:12px;color:var(--mu);margin-bottom:16px">Coloca este código en tu mostrador</div>
+          <div style="width:176px;height:176px;background:var(--bg);border-radius:12px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:72px;border:2px dashed var(--bd)">&#128242;</div>
+          <button class="btn btn-p" style="width:100%" onclick="toast('Conecta tu dominio real para generar el QR definitivo')">&#128260; Generar QR</button>
+          <button class="btn" style="width:100%;margin-top:8px" onclick="window.print()">&#128438;&#65039; Imprimir</button>
+        </div>
+        <div style="flex:1;background:var(--card);border-radius:var(--r);border:1px solid var(--bd);padding:20px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:12px">Cómo funciona</div>
+          <ol style="font-size:13px;line-height:2.2;color:var(--mu);padding-left:18px">
+            <li>El cliente escanea el QR con su cámara</li><li>Se abre la página web en su celular</li>
+            <li>Ingresa su número de teléfono</li><li>Ve todas sus tarjetas activas con imagen y nombre</li>
+            <li>Puede guardar en Apple / Google Wallet</li>
+          </ol>
+          <div style="margin-top:14px;padding:12px 14px;background:var(--bg);border-radius:10px">
+            <div style="font-size:11px;font-weight:700;color:var(--mu);margin-bottom:4px">URL DE TU PÁGINA DE CLIENTE</div>
+            <div style="font-size:13px;font-family:monospace;color:var(--acc)" id="qr-url">http://localhost/cliente/index.html</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="page" id="p-reportes">
+      <div class="sg" style="margin-bottom:20px">
+        <div class="sc"><div class="lbl">Retención</div><div class="val">68%</div><div class="sub">&#8593; 5% vs anterior</div></div>
+        <div class="sc"><div class="lbl">Premios</div><div class="val">143</div><div class="sub">este mes</div></div>
+        <div class="sc"><div class="lbl">Ticket promedio</div><div class="val">$127</div><div class="sub">con tarjeta</div></div>
+        <div class="sc"><div class="lbl">Cupones</div><div class="val">87/200</div><div class="sub">44% canjeados</div></div>
+      </div>
+      <div class="tw"><div style="padding:14px 16px;border-bottom:1px solid var(--bd);font-size:13px;font-weight:700">Rendimiento por programa</div>
+        <table><thead><tr><th>Programa</th><th>Tipo</th><th>Usuarios</th><th>Canjes</th><th>Tasa</th><th>Estado</th></tr></thead><tbody id="rep-tbody"></tbody></table>
+      </div>
+    </div>
+    <div class="page" id="p-empleados">
+      <div class="sh"><h3>Equipo</h3><button class="btn btn-p" onclick="openEmp()">+ Agregar</button></div>
+      <div class="eg" id="emp-grid"></div>
+    </div>
+    <div class="page" id="p-config">
+      <div style="max-width:540px;background:var(--card);border-radius:var(--r);border:1px solid var(--bd);padding:20px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--bd)">Datos del negocio</div>
+        <div class="fg">
+          <div class="fgr"><label>Nombre</label><input type="text" id="cfg-name" value="Café Central"/></div>
+          <div class="fgr"><label>Categoría</label><select><option>Café / Restaurante</option><option>Retail</option><option>Salud y belleza</option><option>Servicios</option></select></div>
+          <div class="fgr"><label>Teléfono</label><input type="tel" value="+52 442 123 4567"/></div>
+          <div class="fgr"><label>Ciudad</label><input type="text" value="Querétaro, MX"/></div>
+          <div class="fgr full"><label>URL página cliente</label><input type="text" id="cfg-url" value="http://localhost/cliente/index.html" oninput="document.getElementById('qr-url').textContent=this.value"/></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:16px"><button class="btn btn-p" onclick="guardarCfg()">&#128190; Guardar</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CREAR TARJETA -->
+<div class="ov" id="m-create">
+  <div class="modal">
+    <div class="mh"><h3>Nueva tarjeta de lealtad</h3><button class="mc" onclick="closeM('m-create')">&#10005;</button></div>
+    <div class="mb">
+      <!-- PREVIEW VISUAL -->
+      <div class="cprev" id="cprev" style="background:#378ADD">
+        <div class="cprev-bg" id="cprev-bg"></div>
+        <div class="cprev-ov"></div>
+        <img class="cprev-logo" id="cprev-logo" style="display:none"/>
+        <div class="cprev-body">
+          <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:20px;display:inline-block;margin-bottom:8px" id="cprev-type">Sellos</span>
+          <div style="font-size:20px;font-weight:800" id="cprev-name">Nombre del programa</div>
+          <div style="font-size:13px;opacity:.85;margin-top:4px" id="cprev-desc">Descripción</div>
+          <div id="cprev-extra"></div>
+        </div>
+        <div class="cprev-foot">
+          <span id="cprev-biz">Mi Negocio</span>
+          <span id="cprev-holder" style="font-style:italic">Para: cliente</span>
+        </div>
+      </div>
+
+      <div style="font-size:11px;font-weight:700;color:var(--mu);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Tipo de tarjeta</div>
+      <div class="ttabs">
+        <div class="ttab sel" onclick="selT('stamp',this)"><span class="ti">&#127947;</span>Sellos</div>
+        <div class="ttab" onclick="selT('service',this)"><span class="ti">&#128203;</span>Prepago servicios</div>
+        <div class="ttab" onclick="selT('gift',this)"><span class="ti">&#127873;</span>Tarjeta regalo</div>
+        <div class="ttab" onclick="selT('discount',this)"><span class="ti">&#127991;&#65039;</span>Descuento</div>
+        <div class="ttab" onclick="selT('coupon',this)"><span class="ti">&#127903;&#65039;</span>Cupón</div>
+        <div class="ttab" onclick="selT('prepaid',this)"><span class="ti">&#128179;</span>Prepago saldo</div>
+        <div class="ttab" onclick="selT('cashback',this)"><span class="ti">&#128181;</span>Cashback</div>
+      </div>
+
+      <div class="fg" style="margin-bottom:4px">
+        <div class="fgr"><label>Nombre del programa *</label>
+          <input type="text" id="f-name" placeholder="Ej. Paquete 12 Cortes"
+            oninput="document.getElementById('cprev-name').textContent=this.value||'Nombre del programa'"/>
+        </div>
+        <div class="fgr"><label>Color de fondo</label>
+          <input type="color" id="f-color" value="#378ADD" oninput="updColor(this.value)"/>
+        </div>
+        <div class="fgr"><label>Inicio</label><input type="date" id="f-start"/></div>
+        <div class="fgr"><label>Vencimiento</label><input type="date" id="f-end"/></div>
+        <div class="fgr full"><label>Descripción / condiciones</label>
+          <textarea id="f-desc" placeholder="Condiciones de uso..."
+            oninput="document.getElementById('cprev-desc').textContent=this.value||'Descripción'"></textarea>
+        </div>
+
+        <!-- IMAGENES -->
+        <div class="fgr full">
+          <label>Imágenes de la tarjeta</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">
+            <div>
+              <div style="font-size:11px;color:var(--mu);margin-bottom:6px;font-weight:600">LOGO (esquina superior derecha)</div>
+              <div class="upzone" id="logo-zone" onclick="document.getElementById('f-logo').click()"
+                ondragover="event.preventDefault();this.style.borderColor='var(--acc)'"
+                ondragleave="this.style.borderColor=''"
+                ondrop="handleDrop(event,'logo')">
+                <input type="file" id="f-logo" accept="image/*" onchange="handleImg(this,'logo')"/>
+                <div id="logo-ph">
+                  <div style="font-size:28px;margin-bottom:6px">&#127991;&#65039;</div>
+                  <div style="font-size:12px;color:var(--mu)">Subir logo<br><span style="font-size:10px">PNG transparente ideal</span></div>
+                </div>
+                <img id="logo-img" style="display:none;max-height:70px;max-width:100%;border-radius:6px;margin:0 auto"/>
+                <button id="logo-rm" style="display:none;position:absolute;top:4px;right:4px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px" onclick="removeImg(event,'logo')">&#10005;</button>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--mu);margin-bottom:6px;font-weight:600">IMAGEN DE FONDO (opcional)</div>
+              <div class="upzone" id="bg-zone" onclick="document.getElementById('f-bg').click()"
+                ondragover="event.preventDefault();this.style.borderColor='var(--acc)'"
+                ondragleave="this.style.borderColor=''"
+                ondrop="handleDrop(event,'bg')">
+                <input type="file" id="f-bg" accept="image/*" onchange="handleImg(this,'bg')"/>
+                <div id="bg-ph">
+                  <div style="font-size:28px;margin-bottom:6px">&#128444;&#65039;</div>
+                  <div style="font-size:12px;color:var(--mu)">Imagen de fondo<br><span style="font-size:10px">Reemplaza el color sólido</span></div>
+                </div>
+                <img id="bg-img" style="display:none;max-height:70px;max-width:100%;border-radius:6px;object-fit:cover;margin:0 auto"/>
+                <button id="bg-rm" style="display:none;position:absolute;top:4px;right:4px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px" onclick="removeImg(event,'bg')">&#10005;</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="dyn"></div>
+    </div>
+    <div class="mf"><button class="btn" onclick="closeM('m-create')">Cancelar</button><button class="btn btn-p" onclick="crearProg()">&#9989; Crear tarjeta</button></div>
+  </div>
+</div>
+
+<!-- MODAL EMITIR TARJETA PERSONALIZADA -->
+<div class="ov" id="m-issue">
+  <div class="modal modal-sm">
+    <div class="mh"><h3 id="issue-title">Emitir tarjeta personalizada</h3><button class="mc" onclick="closeM('m-issue')">&#10005;</button></div>
+    <div class="mb">
+      <div class="icard" id="icard" style="background:#378ADD">
+        <div class="icard-bg" id="icard-bg"></div>
+        <div class="icard-ov"></div>
+        <img class="icard-logo" id="icard-logo" style="display:none;position:absolute;top:12px;right:12px;z-index:2;width:44px;height:44px;border-radius:8px;object-fit:contain;background:rgba(255,255,255,.15);padding:3px"/>
+        <div class="icard-body">
+          <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:20px" id="icard-type">Tarjeta</span>
+          <div style="font-size:19px;font-weight:800;margin-top:8px" id="icard-name">Nombre del programa</div>
+          <div style="font-size:15px;font-weight:700;margin-top:4px;letter-spacing:.3px" id="icard-holder">Para: &#8212;</div>
+          <div style="font-size:12px;opacity:.8;margin-top:2px;font-style:italic" id="icard-msg"></div>
+        </div>
+        <div class="icard-foot" id="icard-foot">Emitida por Mi Negocio</div>
+      </div>
+
+      <div class="fg">
+        <div class="fgr full"><label>Número de celular del cliente *</label>
+          <input type="tel" id="issue-phone" placeholder="442 123 4567" oninput="onIssuePhone(this.value)"/>
+        </div>
+        <div id="issue-found" style="display:none;grid-column:1/-1;background:#ecfdf5;border:1px solid #86efac;border-radius:8px;padding:10px 14px;font-size:13px">
+          <strong id="issue-found-name"></strong> · <span style="color:var(--mu)" id="issue-found-ph"></span>
+        </div>
+        <div class="fgr full"><label>Nombre que aparece en la tarjeta</label>
+          <input type="text" id="issue-holder" placeholder="Ej. María López"
+            oninput="document.getElementById('icard-holder').textContent='Para: '+(this.value||'—')"/>
+        </div>
+        <div class="fgr full"><label>Mensaje personalizado (visible para el cliente)</label>
+          <textarea id="issue-msg" rows="2" placeholder="Ej. Con cariño, gracias por ser nuestra cliente favorita &#127801;"
+            oninput="document.getElementById('icard-msg').textContent=this.value"></textarea>
+        </div>
+        <div class="fgr"><label>Fecha de entrega programada</label><input type="date" id="issue-date"/></div>
+        <div class="fgr"><label>Hora</label><input type="time" id="issue-time" value="09:00"/></div>
+        <div class="fgr full"><label>Nota interna (solo visible en admin)</label>
+          <input type="text" id="issue-note" placeholder="Ej. Entregar en sucursal norte con moño rojo"/></div>
+      </div>
+    </div>
+    <div class="mf"><button class="btn" onclick="closeM('m-issue')">Cancelar</button><button class="btn btn-p" onclick="emitirTarjeta()">&#127873; Emitir tarjeta</button></div>
+  </div>
+</div>
+
+<!-- MODAL EMPLEADO -->
+<div class="ov" id="m-emp">
+  <div class="modal modal-sm">
+    <div class="mh"><h3>Agregar empleado</h3><button class="mc" onclick="closeM('m-emp')">&#10005;</button></div>
+    <div class="mb"><div class="fg">
+      <div class="fgr full"><label>Nombre</label><input type="text" id="e-name"/></div>
+      <div class="fgr full"><label>Email</label><input type="email" id="e-email"/></div>
+      <div class="fgr full"><label>Contraseña temporal</label><input type="password" id="e-pass"/></div>
+      <div class="fgr full"><label>Rol</label><select id="e-role"><option value="cashier">Cajero &#8212; sellar y canjear</option><option value="admin">Admin &#8212; crear y reportes</option><option value="superadmin">Superadmin &#8212; acceso total</option></select></div>
+    </div></div>
+    <div class="mf"><button class="btn" onclick="closeM('m-emp')">Cancelar</button><button class="btn btn-p" onclick="crearEmp()">&#9989; Agregar</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ICONS=['&#11088;','&#9986;&#65039;','&#128134;','&#129302;','&#128133;','&#127947;','&#129473;','&#128137;','&#129461;','&#127946;','&#127934;','&#129344;','&#128218;','&#127912;','&#127869;&#65039;','&#9749;','&#127807;','&#128138;','&#128065;&#65039;','&#128062;'];
+const GIFT_IMGS=['&#127873;','&#127874;','&#127801;','&#128144;','&#127851;','&#127992;','&#11088;','&#129346;','&#127919;','&#127882;','&#128142;','&#129419;'];
+const REWARD_TYPES=[{v:'free_product',l:'Producto gratis'},{v:'percent',l:'% de descuento'},{v:'fixed',l:'$ de descuento'},{v:'points',l:'Puntos extra'},{v:'custom',l:'Beneficio especial'}];
+const TYPE_LABELS={stamp:'Sellos',service:'Prepago servicios',gift:'Tarjeta regalo',discount:'Descuento',coupon:'Cupón',prepaid:'Prepago saldo',cashback:'Cashback'};
+const TYPE_COLORS={stamp:'#378ADD',service:'#0f766e',gift:'#b45309',discount:'#639922',coupon:'#D4537E',prepaid:'#7F77DD',cashback:'#D85A30'};
+
+let programs=[
+  {id:1,name:'Café Frecuente',type:'stamp',color:'#378ADD',description:'Beneficios en cada visita clave',active:1,users:892,redeems:312,logoUrl:null,bgUrl:null,
+   config:{total_stamps:10,welcome_stamps:0,rewards:{3:{type:'percent',value:10,label:'10% descuento',icon:'&#9749;'},6:{type:'percent',value:15,label:'15% descuento',icon:'&#9749;'},10:{type:'free_product',value:0,label:'Café americano gratis',icon:'&#127881;'}}}},
+  {id:2,name:'Paquete 12 Cortes',type:'service',color:'#0f766e',description:'12 cortes prepagados',active:1,users:48,redeems:134,logoUrl:null,bgUrl:null,
+   config:{services:[{name:'Corte de cabello',total:12,used:5,icon:'&#9986;&#65039;'}],price:900}},
+  {id:3,name:'Paquete Spa',type:'service',color:'#7c3aed',description:'Combo de servicios de relajación',active:1,users:31,redeems:67,logoUrl:null,bgUrl:null,
+   config:{services:[{name:'Masaje relajante',total:4,used:1,icon:'&#128134;'},{name:'Facial',total:3,used:0,icon:'&#129302;'},{name:'Manicure',total:5,used:2,icon:'&#128133;'}],price:1500}},
+  {id:4,name:'Gift Card Cumpleaños',type:'gift',color:'#b45309',description:'Regalo personalizado',active:1,users:234,redeems:156,logoUrl:null,bgUrl:null,
+   config:{initial_balance:500,rechargeable:false,image:'&#127874;',message:'Feliz cumpleaños',to_name:'',from_name:'',delivery_date:''}},
+  {id:5,name:'VIP 15%',type:'discount',color:'#639922',description:'Descuento permanente',active:1,users:312,redeems:890,logoUrl:null,bgUrl:null,config:{dtype:'percent',dval:15,dmin:0}},
+  {id:6,name:'Cupón Fin de Semana',type:'coupon',color:'#D4537E',description:'20% sáb y dom',active:1,users:200,redeems:87,logoUrl:null,bgUrl:null,config:{code:'FIN20',discount:20,max_uses:200}},
+  {id:7,name:'Prepago Premium',type:'prepaid',color:'#7F77DD',description:'Recarga con 5% extra',active:1,users:158,redeems:428,logoUrl:null,bgUrl:null,config:{min_load:200,bonus_percent:5,max_balance:5000}},
+];
+let customers=[{id:1,name:'Ana García',phone:'4421234567',cards:3,last:'hace 5 min'},{id:2,name:'Luis Torres',phone:'4427654321',cards:1,last:'hace 18 min'},{id:3,name:'María López',phone:'4429876543',cards:4,last:'hace 34 min'},{id:4,name:'José Ruiz',phone:'4421112233',cards:2,last:'hace 1h'}];
+let employees=[{id:1,name:'Israel',email:'admin@micafe.com',role:'superadmin',color:'#378ADD'},{id:2,name:'María Cajera',email:'cajero@micafe.com',role:'cashier',color:'#639922'}];
+let recent=[{name:'Ana García',prog:'Café Frecuente',type:'stamp',time:'hace 5 min'},{name:'Luis Torres',prog:'Paquete 12 Cortes',type:'service',time:'hace 22 min'},{name:'María López',prog:'Gift Card',type:'gift',time:'hace 40 min'}];
+
+let curType='stamp',stampRews={},totalStamps=10,svcRows=[{name:'',total:5,used:0,icon:'&#11088;'}],selGift='&#127873;';
+let curLogoUrl=null,curBgUrl=null;
+let issueProgId=null;
+
+function nav(id,el){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));document.getElementById('p-'+id).classList.add('active');el.classList.add('active');const T={dashboard:'Dashboard',programas:'Mis tarjetas',canjear:'Sellar / Canjear',clientes:'Clientes',qr:'Código QR',reportes:'Reportes',empleados:'Empleados',config:'Configuración'};document.getElementById('page-title').textContent=T[id]||id;if(id==='programas')rP();if(id==='clientes')rC();if(id==='reportes')rR();if(id==='empleados')rE();if(id==='dashboard')rD();}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+function closeM(id){document.getElementById(id).classList.remove('open');}
+function openEmp(){document.getElementById('m-emp').classList.add('open');}
+
+// ── IMAGE HANDLING ──────────────────────────────────────
+function handleImg(input,type){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const url=e.target.result;
+    if(type==='logo'){
+      curLogoUrl=url;
+      document.getElementById('logo-ph').style.display='none';
+      const img=document.getElementById('logo-img');img.src=url;img.style.display='block';
+      document.getElementById('logo-rm').style.display='flex';
+      document.getElementById('cprev-logo').src=url;document.getElementById('cprev-logo').style.display='block';
+    } else {
+      curBgUrl=url;
+      document.getElementById('bg-ph').style.display='none';
+      const img=document.getElementById('bg-img');img.src=url;img.style.display='block';
+      document.getElementById('bg-rm').style.display='flex';
+      document.getElementById('cprev-bg').style.backgroundImage='url('+url+')';
+      document.getElementById('cprev-bg').style.backgroundSize='cover';
+    }
+  };reader.readAsDataURL(file);
+}
+function handleDrop(e,type){
+  e.preventDefault();e.currentTarget.style.borderColor='';
+  const file=e.dataTransfer.files[0];if(!file)return;
+  const fakeInput={files:[file]};handleImg(fakeInput,type);
+}
+function removeImg(e,type){
+  e.stopPropagation();
+  if(type==='logo'){
+    curLogoUrl=null;
+    document.getElementById('logo-ph').style.display='block';
+    document.getElementById('logo-img').style.display='none';
+    document.getElementById('logo-rm').style.display='none';
+    document.getElementById('cprev-logo').style.display='none';
+    document.getElementById('f-logo').value='';
+  } else {
+    curBgUrl=null;
+    document.getElementById('bg-ph').style.display='block';
+    document.getElementById('bg-img').style.display='none';
+    document.getElementById('bg-rm').style.display='none';
+    document.getElementById('cprev-bg').style.backgroundImage='none';
+    document.getElementById('f-bg').value='';
+  }
+}
+function updColor(c){
+  document.getElementById('cprev').style.background=c;
+}
+
+// ── OPEN CREATE ─────────────────────────────────────────
+function openCreate(){
+  curType='stamp';stampRews={};totalStamps=10;svcRows=[{name:'',total:5,used:0,icon:'&#11088;'}];selGift='&#127873;';
+  curLogoUrl=null;curBgUrl=null;
+  document.querySelectorAll('.ttab').forEach((t,i)=>t.classList.toggle('sel',i===0));
+  ['f-name','f-desc'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-color').value='#378ADD';
+  document.getElementById('cprev').style.background='#378ADD';
+  document.getElementById('cprev-type').textContent='Sellos';
+  document.getElementById('cprev-name').textContent='Nombre del programa';
+  document.getElementById('cprev-desc').textContent='Descripción';
+  document.getElementById('cprev-extra').innerHTML='';
+  document.getElementById('cprev-logo').style.display='none';
+  document.getElementById('cprev-bg').style.backgroundImage='none';
+  // Reset upload zones
+  ['logo','bg'].forEach(t=>{
+    document.getElementById(t+'-ph').style.display='block';
+    document.getElementById(t+'-img').style.display='none';
+    document.getElementById(t+'-rm').style.display='none';
+    document.getElementById('f-'+t).value='';
+  });
+  rDyn('stamp');
+  document.getElementById('m-create').classList.add('open');
+}
+
+function selT(type,el){
+  curType=type;stampRews={};svcRows=[{name:'',total:5,used:0,icon:'&#11088;'}];selGift='&#127873;';
+  document.querySelectorAll('.ttab').forEach(t=>t.classList.remove('sel'));el.classList.add('sel');
+  document.getElementById('f-color').value=TYPE_COLORS[type];
+  document.getElementById('cprev').style.background=TYPE_COLORS[type];
+  document.getElementById('cprev-type').textContent=TYPE_LABELS[type];
+  document.getElementById('cprev-extra').innerHTML='';
+  rDyn(type);
+}
+
+// ── DYNAMIC FIELDS ──────────────────────────────────────
+function rDyn(type){
+  const d=document.getElementById('dyn');
+  if(type==='stamp'){d.innerHTML=buildStamp();rStampList();}
+  else if(type==='service'){d.innerHTML=buildSvc();rSvcRows();}
+  else if(type==='gift'){d.innerHTML=buildGift();}
+  else if(type==='discount'){d.innerHTML='<div class="fg"><div class="fdiv">Descuento</div><div class="fgr"><label>Tipo</label><select id="cf-dtype"><option value="percent">Porcentaje (%)</option><option value="fixed">Monto fijo ($)</option></select></div><div class="fgr"><label>Valor *</label><input type="number" id="cf-dval" value="15" min="1"/></div><div class="fgr"><label>Compra mínima ($)</label><input type="number" id="cf-dmin" value="0"/></div><div class="fgr"><label>Aplicable en</label><input type="text" id="cf-dcat" placeholder="Todo el menú"/></div></div>';}
+  else if(type==='coupon'){d.innerHTML='<div class="fg"><div class="fdiv">Cupón</div><div class="fgr"><label>Código *</label><input type="text" id="cf-code" placeholder="VERANO20" oninput="this.value=this.value.toUpperCase()"/></div><div class="fgr"><label>Descuento (%) *</label><input type="number" id="cf-cpct" value="20" min="1" max="100"/></div><div class="fgr"><label>Total de usos</label><input type="number" id="cf-cmax" value="200" min="1"/></div><div class="fgr"><label>Usos por cliente</label><input type="number" id="cf-cper" value="1" min="1"/></div><div class="fgr"><label>Días válidos</label><select id="cf-cdays"><option value="all">Todos los días</option><option value="weekend">Solo fines de semana</option><option value="weekday">Solo entre semana</option></select></div><div class="fgr"><label>Compra mínima ($)</label><input type="number" id="cf-cmin" value="0"/></div></div>';}
+  else if(type==='prepaid'){d.innerHTML='<div class="fg"><div class="fdiv">Prepago monetario</div><div class="fgr"><label>Carga mínima ($) *</label><input type="number" id="cf-pmin" value="200" min="1"/></div><div class="fgr"><label>Bonificación al recargar (%)</label><input type="number" id="cf-pbonus" value="5" min="0" max="100"/></div><div class="fgr"><label>Saldo máximo ($)</label><input type="number" id="cf-pmax" value="5000"/></div><div class="fgr"><label>Permite transferir</label><select id="cf-ptrans"><option value="0">No</option><option value="1">Sí</option></select></div></div>';}
+  else if(type==='cashback'){d.innerHTML='<div class="fg"><div class="fdiv">Cashback</div><div class="fgr"><label>Porcentaje (%)</label><input type="number" id="cf-cbp" value="3" min="1" max="50"/></div><div class="fgr"><label>Compra mínima ($)</label><input type="number" id="cf-cbmin" value="100"/></div><div class="fgr"><label>Cashback máximo por compra ($)</label><input type="number" id="cf-cbmax" value="50"/></div><div class="fgr"><label>Acreditación</label><select id="cf-cbacc"><option value="auto">Automática</option><option value="manual">Manual</option></select></div></div>';}
+}
+
+// ── STAMP BUILDER ───────────────────────────────────────
+function buildStamp(){return '<div class="fg"><div class="fdiv">Configuración de sellos</div><div class="stamp-controls"><label>Total de visitas / sellos:</label><div class="stepper"><button type="button" onclick="chTotal(-1)">&#8722;</button><input type="number" id="cf-total" value="'+totalStamps+'" min="1" max="99" oninput="totalStamps=Math.max(1,+this.value||1);rStampList()"/><button type="button" onclick="chTotal(1)">+</button></div><div class="fgr" style="flex:1"><label>Sellos de bienvenida</label><input type="number" id="cf-welcome" value="0" min="0" max="10" style="max-width:100px"/></div></div><div class="stamp-tip full">Define el beneficio que recibe el cliente en cada visita. Las visitas sin beneficio se dejan en blanco.</div><div class="stamp-list full"><div class="stamp-list-hdr"><span>Visita</span><span id="stamp-cnt" style="font-size:11px;color:var(--mu);font-weight:400">0 beneficios definidos</span></div><div id="stamp-rows"></div></div></div>';}
+function chTotal(d){totalStamps=Math.max(1,Math.min(99,totalStamps+d));const i=document.getElementById('cf-total');if(i)i.value=totalStamps;rStampList();}
+function rStampList(){
+  const c=document.getElementById('stamp-rows');if(!c)return;
+  const iconO=(sel)=>['&#11088;','&#9986;','&#127869;','&#9749;','&#127881;','&#127873;','&#128142;','&#127919;','&#128133;','&#128134;'].map(ic=>'<option value="'+ic+'"'+(ic===sel?' selected':'')+'>'+ic+'</option>').join('');
+  const typeO=(sel)=>REWARD_TYPES.map(t=>'<option value="'+t.v+'"'+(t.v===sel?' selected':'')+'>'+t.l+'</option>').join('');
+  let h='';
+  for(let i=1;i<=totalStamps;i++){const r=stampRews[i]||{};const hasR=!!(r.label);const noVal=['free_product','custom'].includes(r.type||'free_product');
+    h+='<div class="sr"><div class="sr-num'+(hasR?' on':'')+'">'+( hasR?(r.icon||'&#9733;'):i)+'</div><div class="sr-body"><select class="sr-icon" onchange="setR('+i+',\'icon\',this.value)">'+iconO(r.icon||'&#11088;')+'</select><input class="sr-inp'+(hasR?' has':'')+'" type="text" placeholder="Visita '+i+' — beneficio (opcional)" value="'+(r.label||'')+'" oninput="setR('+i+',\'label\',this.value)"/><select class="sr-type" onchange="setR('+i+',\'type\',this.value)">'+typeO(r.type||'free_product')+'</select><input class="sr-val'+(noVal?' off':'')+'" type="number" min="0" placeholder="Val" value="'+(r.value||'')+'" oninput="setR('+i+',\'value\',+this.value)" id="rv-'+i+'"/></div></div>';
+  }
+  c.innerHTML=h;updStampCnt();updStampPrev();
+}
+function setR(v,field,val){
+  if(!stampRews[v])stampRews[v]={type:'free_product',value:0,label:'',icon:'&#11088;'};
+  stampRews[v][field]=val;
+  if(field==='type'){const noVal=['free_product','custom'].includes(val);const vi=document.getElementById('rv-'+v);if(vi)vi.classList.toggle('off',noVal);}
+  const rows=document.querySelectorAll('#stamp-rows .sr');const row=rows[v-1];
+  if(row){const inp=row.querySelector('.sr-inp');const num=row.querySelector('.sr-num');const hasR=!!(stampRews[v]&&stampRews[v].label);if(inp)inp.classList.toggle('has',hasR);if(num){num.classList.toggle('on',hasR);num.innerHTML=hasR?(stampRews[v].icon||'&#9733;'):v;}}
+  updStampCnt();updStampPrev();
+}
+function updStampCnt(){const n=Object.values(stampRews).filter(r=>r&&r.label).length;const el=document.getElementById('stamp-cnt');if(el)el.textContent=n+' beneficio'+(n!==1?'s':'')+' definido'+(n!==1?'s':'');}
+function updStampPrev(){const pe=document.getElementById('cprev-extra');if(!pe)return;const n=Math.min(totalStamps,14);const dots=Array.from({length:n},(_,i)=>{const r=stampRews[i+1];const bg=r&&r.label?'rgba(255,255,255,.9)':'rgba(255,255,255,.2)';return'<div style="width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.4);background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:9px;color:#333;font-weight:700">'+(r&&r.label?(r.icon||'&#9733;'):i+1)+'</div>';}).join('');pe.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;align-items:center">'+dots+(totalStamps>14?'<span style="font-size:11px;opacity:.8">+'+( totalStamps-14)+'</span>':'')+'</div>';}
+
+// ── SERVICE BUILDER ─────────────────────────────────────
+function buildSvc(){return '<div class="fg"><div class="fdiv">Servicios del paquete — sin límite de servicios ni usos</div><div class="fgr"><label>Precio total del paquete ($)</label><input type="number" id="cf-sprice" value="0" min="0"/></div><div class="fgr"><label>Permite transferir</label><select id="cf-strans"><option value="0">No</option><option value="1">Sí</option></select></div><div class="svc-box full"><div class="svc-hdr"><span>Servicios incluidos</span><span id="svc-tot" style="font-weight:400">0 usos en total</span></div><div id="svc-rows"></div><button class="btn-add" onclick="addSvc()">+ Agregar otro servicio</button></div></div>';}
+function addSvc(){svcRows.push({name:'',total:1,used:0,icon:'&#11088;'});rSvcRows();}
+function remSvc(i){if(svcRows.length<=1){toast('Necesitas al menos un servicio');return;}svcRows.splice(i,1);rSvcRows();}
+function rSvcRows(){
+  const c=document.getElementById('svc-rows');if(!c)return;
+  const iconO=(sel)=>['&#11088;','&#9986;','&#128134;','&#129302;','&#128133;','&#127947;','&#9749;','&#127807;','&#128218;','&#127912;'].map(ic=>'<option value="'+ic+'"'+(ic===sel?' selected':'')+'>'+ic+'</option>').join('');
+  c.innerHTML=svcRows.map((s,i)=>'<div class="svc-row"><select class="svc-icon" onchange="svcRows['+i+'].icon=this.value;updSvcPrev()">'+iconO(s.icon)+'</select><input class="svc-name" type="text" placeholder="Nombre del servicio (ej. Corte, Masaje, Clase...)" value="'+s.name+'" oninput="svcRows['+i+'].name=this.value;updSvcPrev()"/><div class="svc-qty-wrap"><button type="button" onclick="chSvc('+i+',-1)">&#8722;</button><input type="number" min="1" max="999" value="'+s.total+'" oninput="svcRows['+i+'].total=Math.max(1,+this.value||1);updSvcTotal()"/><button type="button" onclick="chSvc('+i+',1)">+</button></div><span class="svc-unit">usos</span><button class="btn-rm" onclick="remSvc('+i+')">&#10005;</button></div>').join('');
+  updSvcTotal();
+}
+function chSvc(i,d){svcRows[i].total=Math.max(1,Math.min(999,(svcRows[i].total||1)+d));rSvcRows();}
+function updSvcTotal(){const t=svcRows.reduce((s,r)=>s+(+r.total||0),0);const el=document.getElementById('svc-tot');if(el)el.textContent=t+' uso'+(t!==1?'s':'')+' en total';updSvcPrev();}
+function updSvcPrev(){const pe=document.getElementById('cprev-extra');if(!pe)return;const pills=svcRows.map(s=>'<div style="background:rgba(255,255,255,.2);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">'+(s.icon||'&#11088;')+' '+(s.name||'Servicio')+' x'+(s.total||1)+'</div>').join('');pe.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">'+pills+'</div>';}
+
+// ── GIFT BUILDER ────────────────────────────────────────
+function buildGift(){return '<div class="fg"><div class="fdiv">Personalización de la tarjeta regalo</div><div class="fgr"><label>Saldo inicial ($) *</label><input type="number" id="cf-gbal" value="500" min="1"/></div><div class="fgr"><label>Recargable</label><select id="cf-grech"><option value="0">No, saldo único</option><option value="1">Sí, recargable</option></select></div><div class="fgr full"><label>Ícono decorativo</label><div class="img-picker">'+GIFT_IMGS.map(g=>'<div class="img-opt'+(g===selGift?' sel':'')+'" onclick="pickGift(\''+g+'\',this)">'+g+'</div>').join('')+'</div></div><div class="fgr full"><label>Mensaje para el destinatario</label><textarea id="cf-gmsg" placeholder="Feliz cumpleaños! Este regalo es especial para ti" rows="3" oninput="updGiftPrev()"></textarea></div><div class="fgr"><label>Para (nombre)</label><input type="text" id="cf-gto" placeholder="Para: María"/></div><div class="fgr"><label>De parte de</label><input type="text" id="cf-gfrom" placeholder="De: Juan"/></div><div class="fgr"><label>Fecha de entrega</label><input type="date" id="cf-gdate"/></div><div class="fgr"><label>Hora</label><input type="time" id="cf-gtime" value="09:00"/></div><div class="fgr full"><label>Nota interna (solo admin)</label><input type="text" id="cf-gnote" placeholder="Ej. Entregar con globos"/></div></div>';}
+function pickGift(img,el){selGift=img;document.querySelectorAll('.img-opt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');updGiftPrev();}
+function updGiftPrev(){const pe=document.getElementById('cprev-extra');if(!pe)return;const msg=(document.getElementById('cf-gmsg')||{}).value||'';pe.innerHTML='<div style="font-size:28px;margin-top:8px">'+selGift+'</div>'+(msg?'<div style="font-size:12px;font-style:italic;opacity:.8;margin-top:6px;background:rgba(255,255,255,.15);padding:6px 10px;border-radius:8px">'+msg+'</div>':'');}
+
+// ── CREAR PROGRAMA ──────────────────────────────────────
+function crearProg(){
+  const name=document.getElementById('f-name').value.trim();
+  if(!name){toast('El nombre es requerido');return;}
+  let cfg={};
+  try{
+    if(curType==='stamp')cfg={total_stamps:totalStamps,welcome_stamps:+(document.getElementById('cf-welcome').value)||0,rewards:{...stampRews}};
+    else if(curType==='service'){const rows=svcRows.map(s=>({name:s.name||'Servicio',total:+s.total||1,used:0,icon:s.icon||'&#11088;'}));if(!rows[0].name.trim()){toast('Agrega al menos un servicio con nombre');return;}cfg={services:rows,price:+(document.getElementById('cf-sprice').value)||0};}
+    else if(curType==='gift')cfg={initial_balance:+(document.getElementById('cf-gbal').value)||0,rechargeable:document.getElementById('cf-grech').value==='1',image:selGift,message:document.getElementById('cf-gmsg').value,to_name:document.getElementById('cf-gto').value,from_name:document.getElementById('cf-gfrom').value,delivery_date:document.getElementById('cf-gdate').value};
+    else if(curType==='discount')cfg={dtype:document.getElementById('cf-dtype').value,dval:+(document.getElementById('cf-dval').value)||0,dmin:+(document.getElementById('cf-dmin').value)||0};
+    else if(curType==='coupon'){const code=document.getElementById('cf-code').value.trim();if(!code){toast('Código requerido');return;}cfg={code,discount:+(document.getElementById('cf-cpct').value)||0,max_uses:+(document.getElementById('cf-cmax').value)||0};}
+    else if(curType==='prepaid')cfg={min_load:+(document.getElementById('cf-pmin').value)||0,bonus_percent:+(document.getElementById('cf-pbonus').value)||0,max_balance:+(document.getElementById('cf-pmax').value)||0};
+    else if(curType==='cashback')cfg={percent:+(document.getElementById('cf-cbp').value)||0,min_purchase:+(document.getElementById('cf-cbmin').value)||0,max_per_tx:+(document.getElementById('cf-cbmax').value)||0};
+  }catch(e){toast('Error en los campos');return;}
+  programs.unshift({id:programs.length+1,name,type:curType,color:document.getElementById('f-color').value,description:document.getElementById('f-desc').value,active:1,users:0,redeems:0,config:cfg,logoUrl:curLogoUrl,bgUrl:curBgUrl});
+  closeM('m-create');toast('"'+name+'" creada exitosamente');
+  nav('programas',document.querySelectorAll('.ni')[1]);
+}
+
+// ── EMITIR TARJETA PERSONALIZADA ───────────────────────
+function openIssue(progId){
+  const p=programs.find(x=>x.id===progId);if(!p)return;
+  issueProgId=progId;
+  document.getElementById('issue-title').textContent='Emitir: '+p.name;
+  document.getElementById('icard').style.background=p.color;
+  document.getElementById('icard-bg').style.backgroundImage=p.bgUrl?'url('+p.bgUrl+')':'none';
+  document.getElementById('icard-bg').style.backgroundSize='cover';
+  if(p.logoUrl){document.getElementById('icard-logo').src=p.logoUrl;document.getElementById('icard-logo').style.display='block';}
+  else document.getElementById('icard-logo').style.display='none';
+  document.getElementById('icard-type').textContent=TYPE_LABELS[p.type]||p.type;
+  document.getElementById('icard-name').textContent=p.name;
+  document.getElementById('icard-holder').textContent='Para: —';
+  document.getElementById('icard-msg').textContent='';
+  document.getElementById('icard-foot').textContent='Emitida por '+document.getElementById('cfg-name').value;
+  ['issue-phone','issue-holder','issue-msg','issue-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('issue-found').style.display='none';
+  document.getElementById('m-issue').classList.add('open');
+}
+function onIssuePhone(v){
+  const ph=v.replace(/\D/g,'');
+  const found=document.getElementById('issue-found');
+  if(ph.length>=10){const c=customers.find(x=>x.phone.startsWith(ph.slice(0,10)));
+    if(c){document.getElementById('issue-found-name').textContent=c.name;document.getElementById('issue-found-ph').textContent=c.phone;found.style.display='block';document.getElementById('issue-holder').value=c.name;document.getElementById('icard-holder').textContent='Para: '+c.name;}
+    else found.style.display='none';}
+  else found.style.display='none';
+}
+function emitirTarjeta(){
+  const phone=document.getElementById('issue-phone').value.replace(/\D/g,'');
+  const holder=document.getElementById('issue-holder').value.trim();
+  if(!phone||!holder){toast('Celular y nombre del titular son requeridos');return;}
+  const p=programs.find(x=>x.id===issueProgId);
+  toast('Tarjeta "'+p.name+'" emitida para '+holder+' ('+phone+') correctamente');
+  closeM('m-issue');
+}
+
+// ── RENDER PROGRAMS ─────────────────────────────────────
+function pMeta(p){const c=p.config;if(p.type==='stamp'){const n=Object.values(c.rewards||{}).filter(r=>r&&r.label).length;return c.total_stamps+' visitas · '+n+' beneficio'+(n!==1?'s':'')+' definido'+(n!==1?'s':'');}if(p.type==='service')return c.services.map(s=>s.icon+' '+s.name+': '+s.total+' usos').join(' · ');if(p.type==='gift'){let m=(c.image||'&#127873;')+' $'+c.initial_balance;if(c.to_name)m+=' · Para: '+c.to_name;return m;}if(p.type==='discount')return c.dval+(c.dtype==='percent'?'%':'$')+' descuento';if(p.type==='coupon')return'Código: '+c.code+' · '+c.discount+'% off';if(p.type==='prepaid')return'Mín $'+c.min_load+' · +'+c.bonus_percent+'% bono';if(p.type==='cashback')return c.percent+'% cashback';return'';}
+function rP(){
+  document.getElementById('prog-grid').innerHTML=programs.map(p=>{
+    const hasBg=!!p.bgUrl;const hasLogo=!!p.logoUrl;
+    return '<div class="pc" style="'+(hasBg?'':'background:'+p.color)+'"><div class="pc-bg" style="background-image:'+(hasBg?'url('+p.bgUrl+')':'none')+'"></div><div class="pc-ov" style="display:'+(hasBg?'block':'none')+'"></div><div class="badge" style="background:'+(p.active?'#4ade80':'#f59e0b')+'"></div>'+(hasLogo?'<img class="pc-logo" src="'+p.logoUrl+'"/>':'')+'<div class="pc-body"><span class="pt">'+TYPE_LABELS[p.type]+'</span><h4>'+p.name+'</h4><p>'+p.description+'</p><div class="pm">'+pMeta(p)+'<br>&#128101; '+p.users+' · &#9989; '+p.redeems+' canjes</div></div><div class="pc-foot"><div class="pa"><button class="pb pb-e" onclick="toast(\'Edición próximamente\')">&#9999;&#65039; Editar</button><button class="pb pb-p" onclick="togP('+p.id+')">'+(p.active?'&#9208;&#65039; Pausar':'&#9654;&#65039; Activar')+'</button><button class="pb pb-i" onclick="openIssue('+p.id+')">&#127873; Emitir</button></div></div></div>';
+  }).join('');
+}
+function togP(id){const p=programs.find(x=>x.id===id);if(p){p.active=p.active?0:1;rP();toast(p.active?'Activado':'Pausado');}}
+
+// ── CLIENTES ────────────────────────────────────────────
+function rC(f=''){const list=f?customers.filter(c=>c.name.toLowerCase().includes(f.toLowerCase())||c.phone.includes(f)):customers;document.getElementById('c-tbody').innerHTML=list.map(c=>'<tr><td><strong>'+c.name+'</strong></td><td style="font-family:monospace">'+c.phone+'</td><td>'+c.cards+'</td><td style="color:var(--mu)">'+c.last+'</td><td><span class="pill pill-ok">Activo</span></td><td><button class="btn btn-sm" onclick="toast(\'Perfil: '+c.name+'\')">Ver</button></td></tr>').join('');}
+function filterC(v){rC(v);}
+
+// ── CANJEAR ─────────────────────────────────────────────
+function populatePS(){document.getElementById('r-prog').innerHTML='<option value="">&#8212; Selecciona &#8212;</option>'+programs.filter(p=>p.active).map(p=>'<option value="'+p.id+'">'+TYPE_LABELS[p.type]+' · '+p.name+'</option>').join('');}
+function buscarCliente(){const ph=document.getElementById('r-phone').value.replace(/\D/g,'');const info=document.getElementById('r-cinfo');if(ph.length>=10){const c=customers.find(x=>x.phone.startsWith(ph.slice(0,10)));if(c){document.getElementById('r-cname').textContent=c.name;document.getElementById('r-cph').textContent=c.phone;info.style.display='block';}else info.style.display='none';}else info.style.display='none';}
+function onProgChange(){const pid=document.getElementById('r-prog').value;const p=programs.find(x=>x.id==pid);const ex=document.getElementById('r-extra');if(!p){ex.innerHTML='';return;}if(p.type==='service'){const opts=p.config.services.map((s,i)=>'<option value="'+i+'">'+s.icon+' '+s.name+' — '+(s.total-s.used)+' restantes</option>').join('');ex.innerHTML='<div class="fgr"><label>Servicio a marcar como usado</label><select id="r-svc">'+opts+'</select></div>';}else if(['prepaid','gift','cashback'].includes(p.type)){ex.innerHTML='<div class="fgr"><label>Monto ($)</label><input type="number" id="r-amt" placeholder="0.00" min="0"/></div>';}else ex.innerHTML='';}
+function aplicarCanje(){
+  const ph=document.getElementById('r-phone').value.replace(/\D/g,'');const pid=document.getElementById('r-prog').value;
+  if(!ph||!pid){toast('Completa todos los campos');return;}
+  const p=programs.find(x=>x.id==pid);const c=customers.find(x=>x.phone.startsWith(ph.slice(0,10)));const name=c?c.name:'Cliente';
+  let msg='',icon='&#9989;';
+  if(p.type==='stamp'){msg='Sello añadido · '+name+' en "'+p.name+'"';icon='&#127947;';}
+  else if(p.type==='service'){const idx=+(document.getElementById('r-svc')||{value:0}).value;const svc=p.config.services[idx];if(!svc){toast('Servicio no encontrado');return;}if(svc.used>=svc.total){toast('Este servicio ya está agotado');return;}svc.used++;const rest=svc.total-svc.used;msg=svc.icon+' "'+svc.name+'" usado para '+name+'. Restantes: '+rest;icon=svc.icon;if(rest===0)msg+=' Paquete agotado!';}
+  else if(p.type==='gift'){const a=(document.getElementById('r-amt')||{}).value||0;msg='$'+a+' descontados del gift card de '+name;icon='&#127873;';}
+  else if(p.type==='discount'){msg=p.config.dval+(p.config.dtype==='percent'?'%':'$')+' descuento aplicado a '+name;icon='&#127991;&#65039;';}
+  else if(p.type==='coupon'){msg='Cupón "'+p.config.code+'" canjeado por '+name;icon='&#127903;&#65039;';}
+  else if(p.type==='prepaid'){const a=(document.getElementById('r-amt')||{}).value||0;msg='$'+a+' descontados del prepago de '+name;icon='&#128179;';}
+  else if(p.type==='cashback'){const a=(document.getElementById('r-amt')||{}).value||0;const e=(a*(p.config.percent||0)/100).toFixed(2);msg='$'+e+' de cashback para '+name;icon='&#128181;';}
+  const rb=document.getElementById('r-result');rb.className='rb rb-ok';rb.innerHTML='<div style="font-size:36px;margin-bottom:8px">'+icon+'</div><div style="font-size:15px;font-weight:700">'+msg+'</div><div style="font-size:12px;color:#166534;margin-top:4px">Aplicado · '+new Date().toLocaleTimeString()+'</div>';
+  recent.unshift({name,prog:p.name,type:p.type,time:'ahora mismo'});if(recent.length>5)recent.pop();rRecent();
+}
+function rRecent(){document.getElementById('r-recent').innerHTML=recent.slice(0,4).map(r=>'<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd)"><div style="width:8px;height:8px;border-radius:50%;background:'+(TYPE_COLORS[r.type]||'#888')+';flex-shrink:0"></div><div style="flex:1;font-size:12px"><strong>'+r.name+'</strong> — '+r.prog+'</div><div style="font-size:11px;color:var(--mu)">'+r.time+'</div></div>').join('');}
+
+// ── REPORTES & EMPLEADOS ────────────────────────────────
+function rR(){document.getElementById('rep-tbody').innerHTML=programs.map(p=>{const rate=p.users>0?Math.round(p.redeems/p.users*100)+'%':'—';return'<tr><td><strong>'+p.name+'</strong></td><td><span class="pill" style="background:'+p.color+'22;color:'+p.color+'">'+TYPE_LABELS[p.type]+'</span></td><td>'+p.users+'</td><td>'+p.redeems+'</td><td>'+rate+'</td><td><span class="pill '+(p.active?'pill-ok':'pill-pa')+'">'+(p.active?'Activo':'Pausado')+'</span></td></tr>';}).join('');}
+function rE(){const rl={superadmin:'Superadmin',admin:'Admin',cashier:'Cajero'};document.getElementById('emp-grid').innerHTML=employees.map(e=>'<div class="ec"><div class="ea" style="background:'+e.color+'">'+e.name.split(' ').map(w=>w[0]).join('').slice(0,2)+'</div><div><div style="font-size:14px;font-weight:600">'+e.name+'</div><div style="font-size:12px;color:var(--mu)">'+e.email+'</div><span class="pill pill-ok" style="margin-top:4px">'+rl[e.role]+'</span></div></div>').join('');}
+function crearEmp(){const name=document.getElementById('e-name').value.trim(),email=document.getElementById('e-email').value.trim();if(!name||!email){toast('Nombre y email requeridos');return;}const cols=['#378ADD','#639922','#EF9F27','#D4537E','#7F77DD'];employees.push({id:employees.length+1,name,email,role:document.getElementById('e-role').value,color:cols[employees.length%cols.length]});closeM('m-emp');toast('"'+name+'" agregado');rE();}
+
+// ── DASHBOARD ───────────────────────────────────────────
+function rD(){document.getElementById('d-progs').textContent=programs.filter(p=>p.active).length;document.getElementById('d-feed').innerHTML=recent.map(r=>'<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd)"><div style="width:36px;height:36px;border-radius:50%;background:'+(TYPE_COLORS[r.type]||'#888')+'22;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">'+(r.type==='stamp'?'&#127947;':r.type==='service'?'&#128203;':r.type==='gift'?'&#127873;':'&#9989;')+'</div><div style="flex:1"><div style="font-size:13px;font-weight:600">'+r.name+'</div><div style="font-size:11px;color:var(--mu)">'+r.prog+' · '+r.time+'</div></div></div>').join('');const maxU=Math.max(...programs.map(p=>p.users),1);document.getElementById('d-bars').innerHTML=programs.slice(0,6).map(p=>'<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>'+p.name+'</span><span style="color:var(--mu)">'+p.users+'</span></div><div style="height:6px;background:var(--bg);border-radius:6px;overflow:hidden"><div style="height:100%;width:'+Math.round(p.users/maxU*100)+'%;background:'+p.color+';border-radius:6px"></div></div></div>').join('');}
+function guardarCfg(){document.getElementById('biz-logo').innerHTML='&#9749; '+document.getElementById('cfg-name').value;toast('Configuración guardada');}
+
+rD();rP();rC();rR();rE();rRecent();populatePS();
+</script>
+</body>
+</html>

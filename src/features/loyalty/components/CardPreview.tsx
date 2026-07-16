@@ -7,10 +7,15 @@ type PreviewProps = {
   type: "STAMP" | "SERVICE" | "GIFT" | "DISCOUNT" | "COUPON" | "PREPAID" | "CASHBACK"
   color: string
   config: ProgramConfig
+  description?: string | null
+  logoUrl?: string | null
+  bgUrl?: string | null
   balance?: number
   serviceUsage?: Record<string, number> | null
   status?: string
   compact?: boolean
+  footerLeft?: string
+  footerRight?: string
 }
 
 export default function CardPreview({
@@ -18,26 +23,57 @@ export default function CardPreview({
   type,
   color,
   config,
+  description,
+  logoUrl,
+  bgUrl,
   balance = 0,
   serviceUsage = null,
   status = "ACTIVE",
   compact = false,
+  footerLeft = "Mi Negocio",
+  footerRight = "Para: cliente",
 }: PreviewProps) {
-  const height = compact ? "min-h-[140px]" : "min-h-[180px]"
+  const height = compact ? "min-h-[140px]" : "min-h-[200px]"
 
   return (
     <div
       className={`rounded-2xl p-5 text-white shadow-lg ${height} flex flex-col relative overflow-hidden`}
-      style={{
-        background: `linear-gradient(135deg, ${color} 0%, ${adjustColor(color, -28)} 100%)`,
-      }}
+      style={
+        bgUrl
+          ? { backgroundColor: color }
+          : {
+              background: `linear-gradient(135deg, ${color} 0%, ${adjustColor(color, -28)} 100%)`,
+            }
+      }
     >
+      {bgUrl && (
+        <>
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url(${bgUrl})` }}
+          />
+          <div className="absolute inset-0 bg-black/35" />
+        </>
+      )}
+      {logoUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={logoUrl}
+          alt=""
+          className="absolute top-3 right-3 z-[2] w-11 h-11 rounded-lg object-contain bg-white/15 p-0.5"
+        />
+      )}
       <div className="relative z-[1] flex justify-between items-start gap-2">
         <div>
           <span className="inline-block text-[10px] font-bold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full mb-2">
             {LOYALTY_TYPE_LABELS[type] || type}
           </span>
-          <h3 className={`font-bold ${compact ? "text-base" : "text-xl"}`}>{name || "Programa"}</h3>
+          <h3 className={`font-bold ${compact ? "text-base" : "text-xl"}`}>
+            {name || "Nombre del programa"}
+          </h3>
+          {description !== undefined && (
+            <p className="text-[13px] opacity-85 mt-1">{description || "Descripción"}</p>
+          )}
         </div>
         {status !== "ACTIVE" && (
           <span className="text-xs bg-black/25 rounded-full px-2 py-0.5">{status}</span>
@@ -74,6 +110,13 @@ export default function CardPreview({
           <BalanceRow value={`${config.discount}%`} label={`código ${config.code}`} />
         )}
       </div>
+
+      {!compact && (
+        <div className="relative z-[1] flex justify-between text-[11px] opacity-80 mt-4 pt-2 border-t border-white/20">
+          <span>{footerLeft}</span>
+          <span className="italic">{footerRight}</span>
+        </div>
+      )}
     </div>
   )
 }
