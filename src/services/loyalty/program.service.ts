@@ -162,3 +162,26 @@ export async function updateProgram(id: number, body: unknown): Promise<LoyaltyP
     throw e
   }
 }
+
+export async function deleteProgram(id: number): Promise<void> {
+  const existing = await prisma.loyaltyProgram.findUnique({
+    where: { id },
+    select: { id: true },
+  })
+  if (!existing) throw new Error("Programa no encontrado")
+
+  const cards = await prisma.loyaltyCard.findMany({
+    where: { programId: id },
+    select: { id: true },
+  })
+  const cardIds = cards.map((c) => c.id)
+
+  await prisma.$transaction(async (tx) => {
+    if (cardIds.length > 0) {
+      await tx.loyaltyTransaction.deleteMany({ where: { cardId: { in: cardIds } } })
+      await tx.loyaltyCard.deleteMany({ where: { programId: id } })
+    }
+    await tx.loyaltyCouponUse.deleteMany({ where: { programId: id } })
+    await tx.loyaltyProgram.delete({ where: { id } })
+  })
+}

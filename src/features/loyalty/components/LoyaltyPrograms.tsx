@@ -322,6 +322,22 @@ export default function LoyaltyPrograms() {
     }
   }
 
+  async function deleteProgram(p: LoyaltyProgram) {
+    const cards = p.cardCount ?? 0
+    const msg =
+      cards > 0
+        ? `¿Eliminar "${p.name}"?\n\nTambién se eliminarán ${cards} tarjeta${cards === 1 ? "" : "s"} emitida${cards === 1 ? "" : "s"} a clientes. Esta acción no se puede deshacer.`
+        : `¿Eliminar "${p.name}"?\n\nEsta acción no se puede deshacer.`
+    if (!window.confirm(msg)) return
+    try {
+      await axios.delete(`/api/loyalty/programs/${p.id}`)
+      await mutate()
+    } catch (err: unknown) {
+      const msgErr = axios.isAxiosError(err) ? err.response?.data?.error : "Error"
+      alert(msgErr || "No se pudo eliminar")
+    }
+  }
+
   async function onPickImage(kind: "logo" | "bg", file: File | undefined) {
     if (!file) return
     try {
@@ -361,6 +377,7 @@ export default function LoyaltyPrograms() {
             onEdit={() => openEdit(p)}
             onToggle={() => toggleActive(p)}
             onIssue={() => setIssueProgram(p)}
+            onDelete={() => deleteProgram(p)}
           />
         ))}
       </div>
@@ -898,11 +915,13 @@ function ProgramCard({
   onEdit,
   onToggle,
   onIssue,
+  onDelete,
 }: {
   program: LoyaltyProgram
   onEdit: () => void
   onToggle: () => void
   onIssue: () => void
+  onDelete: () => void
 }) {
   const hasBg = !!p.bgUrl
   return (
@@ -965,6 +984,13 @@ function ProgramCard({
           className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
         >
           🎁 Emitir
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-black/25 hover:bg-red-600/80 transition-colors"
+        >
+          🗑 Eliminar
         </button>
       </div>
     </div>
