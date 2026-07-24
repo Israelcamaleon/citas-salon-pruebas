@@ -37,7 +37,14 @@ export default function LoginForm() {
         return
       }
 
-      router.push(next)
+      // Asegura que la sesión quedó persistida en cookies antes de navegar
+      const { data: sessionData } = await supabase.auth.getSession()
+      if (!sessionData.session) {
+        setError("No se pudo guardar la sesión. Intenta de nuevo.")
+        return
+      }
+
+      router.replace(next)
       router.refresh()
     } catch {
       setError("No se pudo iniciar sesión")

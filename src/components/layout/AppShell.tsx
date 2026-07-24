@@ -2,11 +2,13 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
+import { useEffect } from "react"
 import useSWR from "swr"
 import { createSupabaseBrowser } from "@/lib/supabase/client"
 import BrandBar from "@/components/layout/BrandBar"
 
-const fetcher = (url: string) => fetch(url).then((r) => (r.ok ? r.json() : null))
+const fetcher = (url: string) =>
+  fetch(url, { credentials: "same-origin" }).then((r) => (r.ok ? r.json() : null))
 
 type NavItem = { href: string; label: string; icon: string; section?: string }
 
@@ -18,7 +20,22 @@ type Props = {
 export default function AppShell({ children, loyaltyEnabled }: Props) {
   const pathname = usePathname()
   const router = useRouter()
-  const { data: me, mutate } = useSWR("/api/auth/me", fetcher)
+  const { data: me, mutate, error: meError } = useSWR("/api/auth/me", fetcher, {
+    shouldRetryOnError: false,
+  })
+
+  useEffect(() => {
+    // Sesión perdida en cliente: volver a login en lugar de romper la UI
+    if (meError || me === null) {
+      const t = setTimeout(() => {
+        if (pathname !== "/login") {
+          router.replace(`/login?next=${encodeURIComponent(pathname)}`)
+          router.refresh()
+        }
+      }, 50)
+      return () => clearTimeout(t)
+    }
+  }, [me, meError, pathname, router])
 
   const nav: NavItem[] = [
     { href: "/dashboard", label: "Dashboard", icon: "📊", section: "General" },
@@ -29,8 +46,12 @@ export default function AppShell({ children, loyaltyEnabled }: Props) {
   ]
 
   async function handleLogout() {
-    const supabase = createSupabaseBrowser()
-    await supabase.auth.signOut()
+    try {
+      const supabase = createSupabaseBrowser()
+      await supabase.auth.signOut()
+    } catch {
+      // ignore
+    }
     await mutate(null, false)
     router.push("/login")
     router.refresh()

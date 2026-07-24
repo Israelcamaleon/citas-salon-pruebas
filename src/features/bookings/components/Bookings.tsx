@@ -2,14 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import useSWR from "swr";
-
-const fetcher = async (url: string) => {
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error("Error cargando " + url);
-  }
-  return res.json();
-};
+import { asArray, fetcher } from "@/lib/api";
 
 type Customer = {
   id: number;
@@ -77,44 +70,57 @@ function formatDateTimeHuman(value: string) {
 export default function BookingsSection() {
   // --- Datos de catálogos ---
   const {
-    data: services = [],
+    data: servicesData,
     isLoading: loadingServices,
+    error: servicesError,
   } = useSWR<Service[]>("/api/services", fetcher);
 
   const {
-    data: staffs = [],
+    data: staffsData,
     isLoading: loadingStaffs,
+    error: staffsError,
   } = useSWR<Staff[]>("/api/staffs", fetcher);
 
   const {
-    data: locations = [],
+    data: locationsData,
     isLoading: loadingLocations,
+    error: locationsError,
   } = useSWR<Location[]>("/api/locations", fetcher);
 
   const {
-    data: customers = [],
+    data: customersData,
     mutate: mutateCustomers,
     isLoading: loadingCustomers,
+    error: customersError,
   } = useSWR<Customer[]>("/api/customers", fetcher);
 
-  const { data: bookings = [], mutate: mutateBookings } = useSWR<Booking[]>(
+  const { data: bookingsData, mutate: mutateBookings, error: bookingsError } = useSWR<Booking[]>(
     "/api/bookings",
     fetcher
   );
 
+  const services = asArray<Service>(servicesData);
+  const staffs = asArray<Staff>(staffsData);
+  const locations = asArray<Location>(locationsData);
+  const customers = asArray<Customer>(customersData);
+  const bookings = asArray<Booking>(bookingsData);
+  const catalogError = servicesError || staffsError || locationsError || customersError || bookingsError;
+
   // --- Estado del formulario de cita ---
-  const [date, setDate] = useState<string>(() => {
-    const now = new Date();
-    const minutes = now.getMinutes();
-    const rounded = Math.ceil(minutes / 15) * 15;
-    now.setMinutes(rounded, 0, 0);
-    return now.toISOString().slice(0, 16); // para input type=datetime-local
-  });
+  const [date, setDate] = useState<string>("");
   const [serviceId, setServiceId] = useState<string>("");
   const [staffId, setStaffId] = useState<string>("");
   const [locationId, setLocationId] = useState<string>("");
   const [durationMin, setDurationMin] = useState<string>("");
   const [customerId, setCustomerId] = useState<string>("");
+
+  useEffect(() => {
+    const now = new Date();
+    const minutes = now.getMinutes();
+    const rounded = Math.ceil(minutes / 15) * 15;
+    now.setMinutes(rounded, 0, 0);
+    setDate(now.toISOString().slice(0, 16));
+  }, []);
 
   // --- Estado para cliente rápido ---
   const [showNewCustomer, setShowNewCustomer] = useState(false);
@@ -278,6 +284,14 @@ export default function BookingsSection() {
 
   return (
     <section id="bookings" className="space-y-6">
+      {catalogError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          No se pudieron cargar los datos ({catalogError.message}).{" "}
+          {catalogError.message.toLowerCase().includes("autorizado")
+            ? "Tu sesión expiró — recarga o vuelve a iniciar sesión."
+            : "Intenta recargar la página."}
+        </div>
+      )}
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold">Citas rápidas</h2>

@@ -1,6 +1,6 @@
 /** SWR fetcher: solo resuelve JSON de respuestas OK; si no, lanza (SWR marca error). */
 export async function fetcher(url: string) {
-  const res = await fetch(url)
+  const res = await fetch(url, { credentials: "same-origin" })
   const data = await res.json().catch(() => null)
   if (!res.ok) {
     const msg =

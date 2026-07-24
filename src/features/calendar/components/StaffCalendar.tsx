@@ -4,8 +4,7 @@ import dayjs from "dayjs"
 import { useMemo, useState, useEffect } from "react"
 import axios from "axios"
 import QuickEditBooking from "@/features/bookings/components/QuickEditBooking"
-
-const fetcher = (u: string) => fetch(u).then(r => r.json())
+import { asArray, fetcher } from "@/lib/api"
 
 function colorFromId(id:number|string, s:number=65, l:number=88){ 
   const n = Array.from(String(id)).reduce((a,c)=>a + c.charCodeAt(0), 0) % 360; 
@@ -17,16 +16,23 @@ type ViewMode = 'week' | 'day'
 
 export default function Calendar() {
   const { data: bookingsRaw, mutate } = useSWR('/api/bookings', fetcher, { revalidateOnFocus: false })
-  const { data: staffs } = useSWR<any[]>('/api/staffs', fetcher, { revalidateOnFocus: false })
-  const { data: locations } = useSWR<any[]>('/api/locations', fetcher, { revalidateOnFocus: false })
-  const loading = !bookingsRaw || !staffs || !locations
+  const { data: staffsData } = useSWR('/api/staffs', fetcher, { revalidateOnFocus: false })
+  const { data: locationsData } = useSWR('/api/locations', fetcher, { revalidateOnFocus: false })
+  const staffs = asArray<any>(staffsData)
+  const locations = asArray<any>(locationsData)
+  const loading = !bookingsRaw || !staffsData || !locationsData
 
-  const [view, setView] = useState<ViewMode>(()=> (typeof window!=='undefined' && (localStorage.getItem('cal_view') as ViewMode)) || 'week')
-  const [weekStart, setWeekStart] = useState(dayjs().startOf('week'))
-  const [selectedDate, setSelectedDate] = useState(dayjs())
+  const [view, setView] = useState<ViewMode>('week')
+  const [weekStart, setWeekStart] = useState(() => dayjs().startOf('week'))
+  const [selectedDate, setSelectedDate] = useState(() => dayjs())
   const [selectedBooking, setSelectedBooking] = useState<any|null>(null)
 
-  useEffect(() => { if (typeof window !== 'undefined') localStorage.setItem('cal_view', view) }, [view])
+  useEffect(() => {
+    const saved = localStorage.getItem('cal_view') as ViewMode | null
+    if (saved === 'week' || saved === 'day') setView(saved)
+  }, [])
+
+  useEffect(() => { localStorage.setItem('cal_view', view) }, [view])
   const [locationId, setLocationId] = useState<number | null>(null)
 
   // Normalize bookings and filter by selected location (Sucursal)
@@ -52,12 +58,12 @@ export default function Calendar() {
   }
   const staffByLocation = readStaffByLocation()
   const selectedStaffIdsForLoc: number[] = useMemo(()=>{
-    if (!locationId) return (staffs??[]).map((s:any)=>s.id)
+    if (!locationId) return staffs.map((s:any)=>s.id)
     const ids = (staffByLocation[String(locationId)] ?? [])
-    return ids.length ? ids : (staffs??[]).map((s:any)=>s.id)
-  }, [locationId, staffs])
+    return ids.length ? ids : staffs.map((s:any)=>s.id)
+  }, [locationId, staffs, staffByLocation])
   const filteredStaffs = useMemo(
-    ()=> (staffs??[]).filter((s:any)=> selectedStaffIdsForLoc.includes(s.id)),
+    ()=> staffs.filter((s:any)=> selectedStaffIdsForLoc.includes(s.id)),
     [staffs, selectedStaffIdsForLoc]
   )
 
