@@ -11,6 +11,8 @@ const prisma = new PrismaClient()
 const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || "admin@example.com"
 const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || "demo1234"
 const ADMIN_NAME = process.env.SEED_ADMIN_NAME || "Administrador"
+/** Por defecto no se toca la contraseña de una cuenta que ya existe. */
+const RESET_PASSWORD = process.env.SEED_RESET_PASSWORD === "1"
 
 const DEFAULT_ROLES = [
   {
@@ -68,13 +70,23 @@ async function main() {
   })
 
   let authUserId
+  let passwordWasSet = false
 
   const { data: existingList } = await supabase.auth.admin.listUsers()
   const existing = existingList?.users?.find((u) => u.email === ADMIN_EMAIL)
 
   if (existing) {
     authUserId = existing.id
-    console.log(`Usuario Supabase ya existe: ${ADMIN_EMAIL}`)
+    if (RESET_PASSWORD) {
+      const { error } = await supabase.auth.admin.updateUserById(authUserId, {
+        password: ADMIN_PASSWORD,
+      })
+      if (error) throw error
+      passwordWasSet = true
+      console.log(`Contraseña restablecida para: ${ADMIN_EMAIL}`)
+    } else {
+      console.log(`Usuario Supabase ya existe: ${ADMIN_EMAIL} (contraseña sin cambios)`)
+    }
   } else {
     const { data, error } = await supabase.auth.admin.createUser({
       email: ADMIN_EMAIL,
@@ -83,6 +95,7 @@ async function main() {
     })
     if (error) throw error
     authUserId = data.user.id
+    passwordWasSet = true
     console.log(`Usuario Supabase creado: ${ADMIN_EMAIL}`)
   }
 
@@ -106,7 +119,9 @@ async function main() {
   console.log("")
   console.log("Seed auth OK")
   console.log(`  Email:    ${ADMIN_EMAIL}`)
-  console.log(`  Password: ${ADMIN_PASSWORD}`)
+  console.log(
+    `  Password: ${passwordWasSet ? ADMIN_PASSWORD : "sin cambios (usa SEED_RESET_PASSWORD=1 para restablecerla)"}`
+  )
   console.log(`  Rol:      Administrador`)
 }
 
