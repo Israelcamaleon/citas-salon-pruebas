@@ -3,8 +3,7 @@
 import useSWR from "swr"
 import type { LoyaltySummary } from "@/types/loyalty"
 import dayjs from "dayjs"
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json())
+import { asArray, fetcher } from "@/lib/api"
 
 const TX_LABELS: Record<string, string> = {
   STAMP: "Sello",
@@ -18,7 +17,8 @@ const TX_LABELS: Record<string, string> = {
 }
 
 export default function LoyaltyDashboard() {
-  const { data, isLoading } = useSWR<LoyaltySummary>("/api/loyalty/reports/summary", fetcher)
+  const { data, isLoading, error } = useSWR<LoyaltySummary>("/api/loyalty/reports/summary", fetcher)
+  const recent = asArray<LoyaltySummary["recentTransactions"][number]>(data?.recentTransactions)
 
   const publicUrl =
     typeof window !== "undefined"
@@ -31,6 +31,13 @@ export default function LoyaltyDashboard() {
   }
 
   if (isLoading) return <p className="text-sm text-lh-muted">Cargando…</p>
+  if (error) {
+    return (
+      <div className="card text-sm text-lh-danger">
+        No se pudo cargar el resumen: {error.message}
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
@@ -67,11 +74,11 @@ export default function LoyaltyDashboard() {
 
       <div className="card">
         <h3 className="section-title">Actividad reciente</h3>
-        {(data?.recentTransactions ?? []).length === 0 ? (
+        {(recent.length === 0) ? (
           <p className="text-sm text-lh-muted">Sin transacciones aún.</p>
         ) : (
           <div className="divide-y divide-lh-border">
-            {data?.recentTransactions.map((tx) => (
+            {recent.map((tx) => (
               <div key={tx.id} className="flex items-center gap-3 py-2.5">
                 <div className="w-9 h-9 rounded-full bg-lh-accent/15 flex items-center justify-center text-sm flex-shrink-0">
                   {tx.type === "STAMP" ? "🎫" : tx.type.includes("CASHBACK") ? "💵" : "✓"}

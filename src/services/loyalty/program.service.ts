@@ -82,9 +82,15 @@ export async function listPrograms(): Promise<LoyaltyProgram[]> {
     redeemByProgram.set(pid, (redeemByProgram.get(pid) ?? 0) + count)
   }
 
-  return rows.map((row) =>
-    toProgram({ ...row, redeemCount: redeemByProgram.get(row.id) ?? 0 })
-  )
+  const programs: LoyaltyProgram[] = []
+  for (const row of rows) {
+    try {
+      programs.push(toProgram({ ...row, redeemCount: redeemByProgram.get(row.id) ?? 0 }))
+    } catch (e) {
+      console.error(`Programa ${row.id} con config inválida:`, e)
+    }
+  }
+  return programs
 }
 
 export async function getProgram(id: number): Promise<LoyaltyProgram | null> {

@@ -5,14 +5,15 @@ import axios from "axios"
 import { useState } from "react"
 import type { LoyaltyProgram } from "@/types/loyalty"
 import { normalizePhoneMX } from "@/lib/utils/phone"
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json())
+import { asArray, fetcher } from "@/lib/api"
 
 type Customer = { id: number; name: string; phone: string | null }
 
 export default function IssueCard() {
-  const { data: programs } = useSWR<LoyaltyProgram[]>("/api/loyalty/programs", fetcher)
-  const { data: customers, mutate: mutateCustomers } = useSWR<Customer[]>("/api/customers", fetcher)
+  const { data: programsData } = useSWR<LoyaltyProgram[]>("/api/loyalty/programs", fetcher)
+  const { data: customersData, mutate: mutateCustomers } = useSWR<Customer[]>("/api/customers", fetcher)
+  const programs = asArray<LoyaltyProgram>(programsData)
+  const customers = asArray<Customer>(customersData)
 
   const [phone, setPhone] = useState("")
   const [newName, setNewName] = useState("")
@@ -21,7 +22,7 @@ export default function IssueCard() {
   const [programId, setProgramId] = useState<number | "">("")
   const [issuing, setIssuing] = useState(false)
 
-  const activePrograms = (programs ?? []).filter((p) => p.active)
+  const activePrograms = programs.filter((p) => p.active)
 
   function searchByPhone() {
     const norm = normalizePhoneMX(phone)
@@ -29,7 +30,7 @@ export default function IssueCard() {
       alert("Teléfono de 10 dígitos")
       return
     }
-    const found = (customers ?? []).find((c) => normalizePhoneMX(c.phone) === norm)
+    const found = customers.find((c) => normalizePhoneMX(c.phone) === norm)
     if (found) {
       setCustomerId(found.id)
       setCustomerName(found.name)

@@ -13,8 +13,7 @@ import {
 import CardPreview from "./CardPreview"
 import type { ProgramConfig } from "@/schemas/loyalty/program-config.schema"
 import { normalizePhoneMX } from "@/lib/utils/phone"
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json())
+import { asArray, fetcher } from "@/lib/api"
 
 type ProgramType = (typeof LOYALTY_PROGRAM_TYPES_V1)[number]
 type ServiceRow = { name: string; total: number; icon: string }
@@ -57,14 +56,16 @@ function readImageAsDataUrl(file: File): Promise<string> {
 }
 
 export default function LoyaltyPrograms() {
-  const { data: programs, mutate, isLoading } = useSWR<LoyaltyProgram[]>(
+  const { data: programsData, mutate, isLoading, error: programsError } = useSWR<LoyaltyProgram[]>(
     "/api/loyalty/programs",
     fetcher
   )
-  const { data: customers, mutate: mutateCustomers } = useSWR<Customer[]>(
+  const { data: customersData, mutate: mutateCustomers } = useSWR<Customer[]>(
     "/api/customers",
     fetcher
   )
+  const programs = asArray<LoyaltyProgram>(programsData)
+  const customers = asArray<Customer>(customersData)
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -360,7 +361,13 @@ export default function LoyaltyPrograms() {
 
       {isLoading && <p className="text-sm text-lh-muted">Cargando…</p>}
 
-      {!isLoading && (programs ?? []).length === 0 && (
+      {programsError && (
+        <div className="card text-sm text-lh-danger">
+          No se pudieron cargar las tarjetas: {programsError.message}
+        </div>
+      )}
+
+      {!isLoading && !programsError && programs.length === 0 && (
         <div className="card text-center py-12 text-lh-muted">
           <p className="mb-3">Aún no hay programas. Crea el primero.</p>
           <button type="button" className="btn btn-primary" onClick={openCreate}>
@@ -370,7 +377,7 @@ export default function LoyaltyPrograms() {
       )}
 
       <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        {(programs ?? []).map((p) => (
+        {programs.map((p) => (
           <ProgramCard
             key={p.id}
             program={p}
@@ -896,7 +903,7 @@ export default function LoyaltyPrograms() {
       {issueProgram && (
         <IssueProgramModal
           program={issueProgram}
-          customers={customers ?? []}
+          customers={customers}
           onClose={() => setIssueProgram(null)}
           onIssued={async () => {
             setIssueProgram(null)

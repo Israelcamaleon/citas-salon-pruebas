@@ -2,8 +2,7 @@
 import useSWR from 'swr'
 import axios from 'axios'
 import { useRef, useState, useMemo } from 'react'
-
-const fetcher = (u: string) => fetch(u).then(r => r.json())
+import { asArray, fetcher } from '@/lib/api'
 
 type Staff = {
   id: number
@@ -24,14 +23,16 @@ type Role = {
 
 export default function Staffs(){
   const formRef = useRef<HTMLFormElement>(null)
-  const { data: staffList, mutate } = useSWR<Staff[]>('/api/staffs', fetcher)
-  const { data: roles } = useSWR<Role[]>('/api/roles', fetcher)
+  const { data: staffData, mutate } = useSWR<Staff[]>('/api/staffs', fetcher)
+  const { data: rolesData } = useSWR<Role[]>('/api/roles', fetcher)
+  const staffList = asArray<Staff>(staffData)
+  const roles = asArray<Role>(rolesData)
 
   // Local edit state
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editRow, setEditRow] = useState<Partial<Staff> & { password?: string }>({})
 
-  const roleOptions = useMemo(() => (roles ?? []).map(r => (
+  const roleOptions = useMemo(() => roles.map(r => (
     <option key={r.id} value={r.name}>{r.name}</option>
   )), [roles])
 
@@ -84,7 +85,7 @@ export default function Staffs(){
     await mutate()
   }
 
-  const defaultRoleName = useMemo(()=> roles?.[0]?.name || '', [roles])
+  const defaultRoleName = useMemo(()=> roles[0]?.name || '', [roles])
 
   return (
     <div className="space-y-4">
@@ -148,7 +149,7 @@ export default function Staffs(){
             </tr>
           </thead>
           <tbody>
-            {(staffList ?? []).map((row) => {
+            {staffList.map((row) => {
               const isEditing = editingId === row.id
               return (
                 <tr key={row.id} className="border-b last:border-b-0">

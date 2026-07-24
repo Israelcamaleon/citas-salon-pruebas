@@ -7,14 +7,15 @@ import StaffCalendar from './StaffCalendar'
 type Mode = 'general' | 'byLocation' | 'split'
 
 export default function Calendar() {
-  const [mode, setMode] = useState<Mode>(() => {
-    if (typeof window === 'undefined') return 'general'
-    const m = localStorage.getItem('cal_mode')
-    return (m === 'general' || m === 'byLocation' || m === 'split') ? (m as Mode) : 'general'
-  })
+  const [mode, setMode] = useState<Mode>('general')
 
   useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('cal_mode', mode)
+    const m = localStorage.getItem('cal_mode')
+    if (m === 'general' || m === 'byLocation' || m === 'split') setMode(m)
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem('cal_mode', mode)
   }, [mode])
 
   useEffect(() => {

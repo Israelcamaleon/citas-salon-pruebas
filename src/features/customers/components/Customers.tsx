@@ -2,22 +2,23 @@
 import useSWR from "swr"
 import axios from "axios"
 import { useRef, useState, useMemo } from "react"
-const fetcher=(u:string)=>fetch(u).then(r=>r.json())
+import { asArray, fetcher } from "@/lib/api"
 
 type Customer = { id:number; name:string; phone:string|null; email:string|null; notes:string|null }
 
 export default function Customers(){
   const formRef=useRef<HTMLFormElement>(null)
   const { data, mutate }=useSWR<Customer[]>('/api/customers', fetcher)
+  const list = asArray<Customer>(data)
 
   const [query, setQuery] = useState('')
   const filtered = useMemo(()=>{
     const q=query.trim().toLowerCase()
-    if(!q) return data||[]
-    return (data||[]).filter(r =>
+    if(!q) return list
+    return list.filter(r =>
       [r.name, r.phone||'', r.email||'', r.notes||''].some(v => (v||'').toLowerCase().includes(q))
     )
-  },[data, query])
+  },[list, query])
 
   const [editingId, setEditingId] = useState<number|null>(null)
   const [editRow, setEditRow] = useState<Partial<Customer>>({})

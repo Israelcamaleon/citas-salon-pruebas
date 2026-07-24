@@ -1,8 +1,9 @@
 'use client'
 import useSWR from 'swr'
 import axios from 'axios'
-import { useState, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import Locations from '@/features/locations/components/Locations'
+import { asArray, fetcher } from '@/lib/api'
 
 type Tab = 'cuenta'
 type SubTabCuenta = 'general' | 'sucursales' | 'roles'
@@ -19,8 +20,6 @@ type Settings = {
   address: string
   logoUrl?: string | null
 }
-
-const fetcher = (u: string) => fetch(u).then(r => r.json())
 
 const PERMISSIONS: { key: string, label: string }[] = [
   { key: 'manageBookings',  label: 'Citas' },
@@ -40,9 +39,9 @@ export default function AjustesPage(){
   const [sub, setSub] = useState<SubTabCuenta>('general')
 
   // Data
-  const { data: locations } = useSWR<any[]>('/api/locations', fetcher)
-  const { data: roles, mutate: mutateRoles } = useSWR<Role[]>('/api/roles', fetcher)
+  const { data: rolesData, mutate: mutateRoles } = useSWR<Role[]>('/api/roles', fetcher)
   const { data: settings, mutate: mutateSettings } = useSWR<Settings>('/api/settings', fetcher)
+  const roles = asArray<Role>(rolesData)
 
   // UI helpers
   const tabClass = (active:boolean) => active ? 'px-3 py-2 rounded-lg bg-black text-white' : 'px-3 py-2 rounded-lg hover:bg-neutral-100'
@@ -73,14 +72,11 @@ export default function AjustesPage(){
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
-  // Sincroniza estados cuando llega settings
-  useMemo(()=>{
-    if (settings){
-      setBizName(settings.businessName || '')
-      setAddress(settings.address || '')
-      setLogoUrl(settings.logoUrl || null)
-    }
-    return null
+  useEffect(() => {
+    if (!settings) return
+    setBizName(settings.businessName || '')
+    setAddress(settings.address || '')
+    setLogoUrl(settings.logoUrl || null)
   }, [settings])
 
   async function onUploadLogo(file: File){

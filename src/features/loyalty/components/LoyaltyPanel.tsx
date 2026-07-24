@@ -8,7 +8,7 @@ import LoyaltyOperate from "./LoyaltyOperate"
 import IssueCard from "./IssueCard"
 
 export default function LoyaltyPanel() {
-  const [tab, setTab] = useState("programs")
+  const [tab, setTab] = useState("dashboard")
 
   return (
     <div className="space-y-4">
