@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import useSWR from "swr"
 import { createSupabaseBrowser } from "@/lib/supabase/client"
 import BrandBar from "@/components/layout/BrandBar"
@@ -20,22 +20,20 @@ type Props = {
 export default function AppShell({ children, loyaltyEnabled }: Props) {
   const pathname = usePathname()
   const router = useRouter()
-  const { data: me, mutate, error: meError } = useSWR("/api/auth/me", fetcher, {
+  const redirected = useRef(false)
+  const { data: me, mutate, isLoading } = useSWR("/api/auth/me", fetcher, {
     shouldRetryOnError: false,
+    revalidateOnFocus: false,
   })
 
   useEffect(() => {
-    // Sesión perdida en cliente: volver a login en lugar de romper la UI
-    if (meError || me === null) {
-      const t = setTimeout(() => {
-        if (pathname !== "/login") {
-          router.replace(`/login?next=${encodeURIComponent(pathname)}`)
-          router.refresh()
-        }
-      }, 50)
-      return () => clearTimeout(t)
+    // Solo redirigir cuando ya terminó la carga y no hay sesión
+    if (isLoading || redirected.current) return
+    if (me === null) {
+      redirected.current = true
+      router.replace(`/login?next=${encodeURIComponent(pathname)}`)
     }
-  }, [me, meError, pathname, router])
+  }, [me, isLoading, pathname, router])
 
   const nav: NavItem[] = [
     { href: "/dashboard", label: "Dashboard", icon: "📊", section: "General" },
@@ -50,7 +48,7 @@ export default function AppShell({ children, loyaltyEnabled }: Props) {
       const supabase = createSupabaseBrowser()
       await supabase.auth.signOut()
     } catch {
-      // ignore
+      // ignore — igual limpiamos UI
     }
     await mutate(null, false)
     router.push("/login")

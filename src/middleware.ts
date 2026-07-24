@@ -5,11 +5,21 @@ import {
   requiresApiAuth,
 } from "@/lib/supabase/middleware"
 
-/** Copia cookies del response de Supabase (refresh de sesión) a otra respuesta. */
+/**
+ * Copia Set-Cookie completos (Path, Max-Age, Secure, etc.).
+ * getAll()+set() pierde opciones y puede corromper la sesión en el browser.
+ */
 function copyCookies(from: NextResponse, to: NextResponse) {
-  from.cookies.getAll().forEach((cookie) => {
-    to.cookies.set(cookie.name, cookie.value)
-  })
+  const raw = from.headers.getSetCookie?.() ?? []
+  for (const cookie of raw) {
+    to.headers.append("Set-Cookie", cookie)
+  }
+  // Fallback por si getSetCookie no está disponible
+  if (raw.length === 0) {
+    from.cookies.getAll().forEach((c) => {
+      if (c?.name) to.cookies.set(c.name, c.value)
+    })
+  }
   return to
 }
 
@@ -18,7 +28,9 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const method = request.method
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   if (isProtectedPage(pathname) && !user) {
     const loginUrl = request.nextUrl.clone()

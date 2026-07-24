@@ -1,19 +1,24 @@
 'use client'
 import useSWR from 'swr'
 import Link from 'next/link'
-import { fetcher } from '@/lib/api'
 import type { AppSettings } from '@/types'
 
 type Props = { compact?: boolean }
 
+const softFetcher = (url: string) =>
+  fetch(url, { credentials: "same-origin" }).then((r) => (r.ok ? r.json() : null))
+
 export default function BrandBar({ compact }: Props) {
-  const { data } = useSWR<AppSettings>('/api/settings', fetcher)
+  const { data } = useSWR<AppSettings | null>('/api/settings', softFetcher, {
+    shouldRetryOnError: false,
+  })
   const name = data?.businessName?.trim() || 'Glam Schedule'
   const logo = data?.logoUrl || null
 
   return (
     <Link href="/dashboard" className="flex items-center gap-2 min-w-0">
       {logo ? (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={logo}
           alt="Logo"

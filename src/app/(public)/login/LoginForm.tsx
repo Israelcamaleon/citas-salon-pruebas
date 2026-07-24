@@ -1,11 +1,10 @@
 'use client'
 
 import { useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { createSupabaseBrowser } from "@/lib/supabase/client"
 
 export default function LoginForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const next = searchParams.get("next") || "/dashboard"
 
@@ -44,8 +43,8 @@ export default function LoginForm() {
         return
       }
 
-      router.replace(next)
-      router.refresh()
+      // Navegación completa para que el middleware lea las cookies nuevas
+      window.location.assign(next)
     } catch {
       setError("No se pudo iniciar sesión")
     } finally {
