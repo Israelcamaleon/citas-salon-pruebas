@@ -116,8 +116,15 @@ export default function Staffs(){
           </div>
           <div>
             <div className="label">Rol *</div>
-            <select name="role" className="input" defaultValue={defaultRoleName} required disabled={!roles}>
-              {roles ? (
+            <select
+              key={defaultRoleName}
+              name="role"
+              className="input"
+              defaultValue={defaultRoleName}
+              required
+              disabled={roles.length === 0}
+            >
+              {roles.length > 0 ? (
                 <>
                   <option value="">Selecciona…</option>
                   {roleOptions}
@@ -128,7 +135,7 @@ export default function Staffs(){
             </select>
           </div>
           <div className="md:col-span-6 flex justify-end">
-            <button className="btn btn-primary" type="submit" disabled={!roles}>Agregar</button>
+            <button className="btn btn-primary" type="submit" disabled={roles.length === 0}>Agregar</button>
           </div>
         </form>
       </div>
@@ -156,17 +163,17 @@ export default function Staffs(){
                   <td className="py-2 pr-4">{row.id}</td>
                   <td className="py-2 pr-4">
                     {isEditing ? (
-                      <input className="input" value={editRow.name ?? ''} onChange={e=>setEditRow(r=>({...r, name: e.currentTarget.value}))} />
+                      <input className="input" value={editRow.name ?? ''} onChange={e=>{const v=e.currentTarget.value; setEditRow(r=>({...r, name: v}))}} />
                     ) : row.name}
                   </td>
                   <td className="py-2 pr-4">
                     {isEditing ? (
-                      <input className="input" value={editRow.email ?? ''} onChange={e=>setEditRow(r=>({...r, email: e.currentTarget.value}))} />
+                      <input className="input" value={editRow.email ?? ''} onChange={e=>{const v=e.currentTarget.value; setEditRow(r=>({...r, email: v}))}} />
                     ) : row.email}
                   </td>
                   <td className="py-2 pr-4">
                     {isEditing ? (
-                      <input className="input" value={editRow.phone ?? ''} onChange={e=>setEditRow(r=>({...r, phone: e.currentTarget.value}))} />
+                      <input className="input" value={editRow.phone ?? ''} onChange={e=>{const v=e.currentTarget.value; setEditRow(r=>({...r, phone: v}))}} />
                     ) : (row.phone || '-')}
                   </td>
                   <td className="py-2 pr-4">
@@ -174,10 +181,10 @@ export default function Staffs(){
                       <select
                         className="input"
                         value={editRow.role ?? row.role}
-                        onChange={e=>setEditRow(r=>({...r, role: e.currentTarget.value}))}
-                        disabled={!roles}
+                        onChange={e=>{const v=e.currentTarget.value; setEditRow(r=>({...r, role: v}))}}
+                        disabled={roles.length === 0}
                       >
-                        {roles ? (
+                        {roles.length > 0 ? (
                           <>
                             <option value="">Selecciona…</option>
                             {roleOptions}
@@ -200,7 +207,7 @@ export default function Staffs(){
                       <input
                         type="checkbox"
                         checked={!!(editRow.isActive ?? row.isActive)}
-                        onChange={e=>setEditRow(r=>({...r, isActive: e.currentTarget.checked}))}
+                        onChange={e=>{const v=e.currentTarget.checked; setEditRow(r=>({...r, isActive: v}))}}
                       />
                     ) : (row.isActive ? 'Sí' : 'No')}
                   </td>
@@ -212,7 +219,7 @@ export default function Staffs(){
                           type="password"
                           placeholder="Nueva contraseña (opc.)"
                           value={editRow.password ?? ''}
-                          onChange={e=>setEditRow(r=>({...r, password: e.currentTarget.value}))}
+                          onChange={e=>{const v=e.currentTarget.value; setEditRow(r=>({...r, password: v}))}}
                         />
                         <div className="flex gap-2">
                           <button type="button" className="btn text-xs" onClick={()=>saveEdit(row.id)}>Guardar</button>
