@@ -2,7 +2,8 @@
 import useSWR from 'swr'
 import axios from 'axios'
 import { useRef, useState, useMemo } from 'react'
-import { asArray, fetcher } from '@/lib/api'
+import { asArray, describeApiError, fetcher } from '@/lib/api'
+import { useSession } from '@/lib/useSession'
 
 type Staff = {
   id: number
@@ -25,8 +26,10 @@ export default function Staffs(){
   const formRef = useRef<HTMLFormElement>(null)
   const { data: staffData, mutate } = useSWR<Staff[]>('/api/staffs', fetcher)
   const { data: rolesData } = useSWR<Role[]>('/api/roles', fetcher)
+  const { staff: me, can, isLoading: loadingSession } = useSession()
   const staffList = asArray<Staff>(staffData)
   const roles = asArray<Role>(rolesData)
+  const canManage = can('manageStaff')
 
   // Local edit state
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -52,8 +55,7 @@ export default function Staffs(){
       setEditingId(null); setEditRow({})
       await mutate()
     } catch (err: unknown) {
-      const msg = axios.isAxiosError(err) ? err.response?.data?.error : "Error"
-      alert(msg || "No se pudo actualizar")
+      alert(describeApiError(err, 'No se pudo actualizar'))
     }
   }
 
@@ -74,24 +76,58 @@ export default function Staffs(){
       formRef.current?.reset()
       await mutate()
     } catch (err: unknown) {
-      const msg = axios.isAxiosError(err) ? err.response?.data?.error : "Error"
-      alert(msg || "No se pudo crear")
+      alert(describeApiError(err, 'No se pudo crear'))
     }
   }
 
   async function remove(id: number){
     if (!confirm('¿Eliminar colaborador?')) return
-    await axios.delete(`/api/staffs/${id}`)
-    await mutate()
+    try {
+      await axios.delete(`/api/staffs/${id}`)
+      await mutate()
+    } catch (err: unknown) {
+      alert(describeApiError(err, 'No se pudo eliminar'))
+    }
+  }
+
+  async function grantAccess(row: Staff){
+    const password = prompt(
+      `Contraseña inicial para ${row.name} (${row.email}).\nMínimo 6 caracteres; podrá cambiarla después.`
+    )
+    if (password === null) return
+    if (password.length < 6) { alert('La contraseña debe tener al menos 6 caracteres'); return }
+    try {
+      await axios.post(`/api/staffs/${row.id}/access`, { password })
+      await mutate()
+      alert(`Listo. ${row.name} ya puede iniciar sesión con ${row.email}.`)
+    } catch (err: unknown) {
+      alert(describeApiError(err, 'No se pudo crear el acceso'))
+    }
   }
 
   const defaultRoleName = useMemo(()=> roles[0]?.name || '', [roles])
+  const withoutAccess = staffList.filter(s => !s.hasLogin).length
 
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Colaboradores</h2>
 
+      {!loadingSession && !canManage && (
+        <div className="border border-amber-300 bg-amber-50 text-amber-900 rounded-lg p-3 text-sm">
+          Tu rol{me ? ` (${me.role})` : ''} puede consultar esta lista pero no modificarla.
+          Pide a un administrador que te asigne un rol con permiso de gestión de personal.
+        </div>
+      )}
+
+      {canManage && withoutAccess > 0 && (
+        <div className="border border-blue-300 bg-blue-50 text-blue-900 rounded-lg p-3 text-sm">
+          {withoutAccess} colaborador(es) no tienen cuenta de acceso y no pueden iniciar sesión.
+          Usa el botón <strong>Crear acceso</strong> en su fila para darles entrada.
+        </div>
+      )}
+
       {/* Crear */}
+      {canManage && (
       <div className="border rounded-lg p-4">
         <h3 className="font-medium mb-1">Agregar colaborador</h3>
         <p className="text-sm text-gray-600 mb-3">
@@ -139,6 +175,7 @@ export default function Staffs(){
           </div>
         </form>
       </div>
+      )}
 
       {/* Listado */}
       <div className="overflow-auto">
@@ -152,19 +189,25 @@ export default function Staffs(){
               <th className="py-2 pr-4">Rol</th>
               <th className="py-2 pr-4">Acceso</th>
               <th className="py-2 pr-4">Activo</th>
-              <th className="py-2 pr-4"></th>
+              {canManage && <th className="py-2 pr-4"></th>}
             </tr>
           </thead>
           <tbody>
             {staffList.map((row) => {
               const isEditing = editingId === row.id
+              const isMe = me?.id === row.id
               return (
                 <tr key={row.id} className="border-b last:border-b-0">
                   <td className="py-2 pr-4">{row.id}</td>
                   <td className="py-2 pr-4">
                     {isEditing ? (
                       <input className="input" value={editRow.name ?? ''} onChange={e=>{const v=e.currentTarget.value; setEditRow(r=>({...r, name: v}))}} />
-                    ) : row.name}
+                    ) : (
+                      <>
+                        {row.name}
+                        {isMe && <span className="ml-2 text-xs text-gray-500">(tú)</span>}
+                      </>
+                    )}
                   </td>
                   <td className="py-2 pr-4">
                     {isEditing ? (
@@ -198,6 +241,10 @@ export default function Staffs(){
                   <td className="py-2 pr-4">
                     {row.hasLogin ? (
                       <span className="text-green-700">Sí</span>
+                    ) : canManage ? (
+                      <button type="button" className="btn text-xs" onClick={()=>grantAccess(row)}>
+                        Crear acceso
+                      </button>
                     ) : (
                       <span className="text-amber-700">Sin cuenta</span>
                     )}
@@ -207,17 +254,19 @@ export default function Staffs(){
                       <input
                         type="checkbox"
                         checked={!!(editRow.isActive ?? row.isActive)}
+                        disabled={isMe}
                         onChange={e=>{const v=e.currentTarget.checked; setEditRow(r=>({...r, isActive: v}))}}
                       />
                     ) : (row.isActive ? 'Sí' : 'No')}
                   </td>
+                  {canManage && (
                   <td className="py-2 pr-4">
                     {isEditing ? (
                       <div className="space-y-1">
                         <input
                           className="input text-xs"
                           type="password"
-                          placeholder="Nueva contraseña (opc.)"
+                          placeholder={row.hasLogin ? 'Nueva contraseña (opc.)' : 'Contraseña para dar acceso'}
                           value={editRow.password ?? ''}
                           onChange={e=>{const v=e.currentTarget.value; setEditRow(r=>({...r, password: v}))}}
                         />
@@ -229,10 +278,19 @@ export default function Staffs(){
                     ) : (
                       <div className="flex gap-2">
                         <button type="button" className="btn text-xs" onClick={()=>startEdit(row)}>Editar</button>
-                        <button type="button" className="btn text-xs" onClick={()=>remove(row.id)}>Eliminar</button>
+                        <button
+                          type="button"
+                          className="btn text-xs disabled:opacity-40"
+                          disabled={isMe}
+                          title={isMe ? 'No puedes eliminar tu propia cuenta' : undefined}
+                          onClick={()=>remove(row.id)}
+                        >
+                          Eliminar
+                        </button>
                       </div>
                     )}
                   </td>
+                  )}
                 </tr>
               )
             })}

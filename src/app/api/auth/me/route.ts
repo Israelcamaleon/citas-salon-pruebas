@@ -18,7 +18,7 @@ export async function GET() {
           id: ctx.staff.id,
           name: ctx.staff.name,
           email: ctx.staff.email,
-          role: ctx.staff.role,
+          role: ctx.staff.role.name,
         }
       : null,
     permissions: ctx.permissions,

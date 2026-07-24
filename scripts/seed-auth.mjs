@@ -50,6 +50,7 @@ async function ensureRoles() {
       create: role,
     })
   }
+  return prisma.role.findUniqueOrThrow({ where: { name: "Administrador" } })
 }
 
 async function main() {
@@ -60,7 +61,7 @@ async function main() {
     throw new Error("Faltan NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY")
   }
 
-  await ensureRoles()
+  const adminRole = await ensureRoles()
 
   const supabase = createClient(url, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -89,13 +90,13 @@ async function main() {
     where: { email: ADMIN_EMAIL },
     update: {
       name: ADMIN_NAME,
-      role: "Administrador",
+      roleId: adminRole.id,
       authUserId,
       isActive: true,
     },
     create: {
       name: ADMIN_NAME,
-      role: "Administrador",
+      roleId: adminRole.id,
       email: ADMIN_EMAIL,
       authUserId,
       isActive: true,

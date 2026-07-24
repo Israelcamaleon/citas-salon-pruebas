@@ -22,21 +22,21 @@ export async function GET(_req: Request, { params }: Params) {
   return NextResponse.json(row)
 }
 
-export const PATCH = withAuth(async (req, { params }) => {
+export const PATCH = withAuth(async (req, { params }, actor) => {
   const { id: raw } = await params
   const id = parseId(raw)
   if (id === null) return NextResponse.json({ error: "ID inválido" }, { status: 400 })
 
   const body = await req.json()
-  const updated = await staffService.updateStaff(id, body)
+  const updated = await staffService.updateStaff(id, body, actor.id)
   return NextResponse.json(updated)
 }, { permission: "manageStaff" })
 
-export const DELETE = withAuth(async (_req, { params }) => {
+export const DELETE = withAuth(async (_req, { params }, actor) => {
   const { id: raw } = await params
   const id = parseId(raw)
   if (id === null) return NextResponse.json({ error: "ID inválido" }, { status: 400 })
 
-  await staffService.deleteStaff(id)
+  await staffService.deleteStaff(id, actor.id)
   return NextResponse.json({ ok: true })
 }, { permission: "manageStaff" })

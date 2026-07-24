@@ -59,7 +59,10 @@ export async function middleware(request: NextRequest) {
   if (requiresApiAuth(pathname, method) && !user) {
     return copyCookies(
       response,
-      NextResponse.json({ error: "No autorizado" }, { status: 401 })
+      NextResponse.json(
+        { error: "Tu sesión expiró. Vuelve a iniciar sesión.", code: "NO_SESSION" },
+        { status: 401 }
+      )
     )
   }
 

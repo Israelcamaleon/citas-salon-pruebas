@@ -115,12 +115,20 @@ export async function updateRole(id: number, body: Record<string, unknown>) {
 }
 
 export async function deleteRole(id: number) {
+  const inUse = await prisma.staff.count({ where: { roleId: id } })
+  if (inUse > 0) {
+    throw new Error(
+      `No se puede eliminar: ${inUse} colaborador(es) tienen este rol. Reasígnalos primero.`
+    )
+  }
+
   try {
     const row = await prisma.role.delete({ where: { id } })
     return toRole(row)
   } catch (e: unknown) {
     const err = e as { code?: string }
     if (err?.code === "P2025") throw new Error("No encontrado")
+    if (err?.code === "P2003") throw new Error("No se puede eliminar: el rol está en uso")
     throw e
   }
 }
