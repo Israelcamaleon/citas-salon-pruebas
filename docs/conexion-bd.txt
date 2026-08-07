@@ -1,0 +1,21 @@
+CONEXION BASE DE DATOS
+======================
+
+Proyecto Supabase: ypwzuxrtlsqaojdjxrdd
+Dashboard: https://supabase.com/dashboard/project/ypwzuxrtlsqaojdjxrdd
+
+Host:     aws-1-us-east-2.pooler.supabase.com
+Base:     postgres
+Usuario:  postgres.ypwzuxrtlsqaojdjxrdd
+Password: 8sBy4erWWZu9QJO5
+
+Puerto 6543 → app / Vercel (DATABASE_URL)
+Puerto 5432 → TablePlus, DBeaver, migraciones (DIRECT_URL)
+
+URL completa app:
+postgresql://postgres.ypwzuxrtlsqaojdjxrdd:8sBy4erWWZu9QJO5@aws-1-us-east-2.pooler.supabase.com:6543/postgres?pgbouncer=true
+
+URL completa directa:
+postgresql://postgres.ypwzuxrtlsqaojdjxrdd:8sBy4erWWZu9QJO5@aws-1-us-east-2.pooler.supabase.com:5432/postgres
+
+Local: pegar en .env.local como DATABASE_URL y DIRECT_URL
