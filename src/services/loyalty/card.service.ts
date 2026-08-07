@@ -75,6 +75,31 @@ export async function listCardsByCustomer(customerId: number): Promise<LoyaltyCa
   return rows.map(toCard)
 }
 
+/** Lista todas las tarjetas con su cliente y programa (para reportes del panel) */
+export async function listAllCards(opts?: { status?: string; q?: string }): Promise<LoyaltyCard[]> {
+  const statusOk = ["ACTIVE", "REDEEMED", "EXPIRED", "BLOCKED"].includes(opts?.status ?? "")
+  const q = opts?.q?.trim()
+  const rows = await prisma.loyaltyCard.findMany({
+    where: {
+      ...(statusOk ? { status: opts!.status as LoyaltyCardStatus } : {}),
+      ...(q
+        ? {
+            customer: {
+              OR: [
+                { name: { contains: q, mode: "insensitive" as const } },
+                { phone: { contains: q } },
+              ],
+            },
+          }
+        : {}),
+    },
+    include: cardInclude,
+    orderBy: { issuedAt: "desc" },
+    take: 300,
+  })
+  return rows.map(toCard)
+}
+
 export async function getCard(id: number): Promise<LoyaltyCard | null> {
   const row = await prisma.loyaltyCard.findUnique({
     where: { id },

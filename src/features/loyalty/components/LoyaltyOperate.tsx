@@ -14,6 +14,15 @@ type Customer = { id: number; name: string; phone: string | null }
 
 type ResultMsg = { ok: boolean; title: string; detail?: string }
 
+type StampInfo = {
+  stampsBefore: number
+  stampsAfter: number
+  stampsNeeded: number
+  completed: boolean
+  reward: string | null
+  nextReward: { atStamps: number; text: string } | null
+}
+
 export default function LoyaltyOperate() {
   const { data: customers } = useSWR<Customer[]>("/api/customers", fetcher)
   const [phone, setPhone] = useState("")
@@ -143,11 +152,48 @@ export default function LoyaltyOperate() {
               purchaseAmt={purchaseAmt}
               setPurchaseAmt={setPurchaseAmt}
               busy={busy}
-              onStamp={() =>
-                runAction("Sello añadido", () =>
-                  axios.post("/api/loyalty/transactions/stamp", { cardId: selected.id, amount: 1 })
-                )
-              }
+              onStamp={() => {
+                void (async () => {
+                  setBusy(true)
+                  setResult(null)
+                  try {
+                    const res = await axios.post("/api/loyalty/transactions/stamp", {
+                      cardId: selected.id,
+                      amount: 1,
+                    })
+                    await refreshCards()
+                    const info = res.data?.stampInfo as StampInfo | undefined
+                    if (info?.completed) {
+                      setResult({
+                        ok: true,
+                        title: "🎉 ¡Tarjeta completada!",
+                        detail: info.reward
+                          ? `Recompensa: ${info.reward}`
+                          : "Recompensa lista para canjear",
+                      })
+                    } else if (info) {
+                      const parts = [`Lleva ${info.stampsAfter} de ${info.stampsNeeded} sellos`]
+                      if (info.nextReward) {
+                        parts.push(
+                          `le faltan ${info.nextReward.atStamps - info.stampsAfter} para: ${info.nextReward.text}`
+                        )
+                      }
+                      setResult({
+                        ok: true,
+                        title: info.reward ? "🎁 ¡Sello con beneficio!" : "Sello añadido",
+                        detail: (info.reward ? [`Ganó: ${info.reward}`, ...parts] : parts).join(" · "),
+                      })
+                    } else {
+                      setResult({ ok: true, title: "Sello añadido" })
+                    }
+                  } catch (err: unknown) {
+                    const msg = axios.isAxiosError(err) ? err.response?.data?.error : "Error"
+                    setResult({ ok: false, title: msg || "No se pudo completar" })
+                  } finally {
+                    setBusy(false)
+                  }
+                })()
+              }}
               onService={(name) =>
                 runAction(`Servicio usado: ${name}`, () =>
                   axios.post("/api/loyalty/transactions/service-use", {
@@ -273,11 +319,55 @@ function ActionPanel({
   const type = card.program!.type
   const config = card.program!.config
 
-  if (type === "STAMP") {
+  if (type === "STAMP" && config.type === "STAMP") {
+    const needed = config.stampsNeeded
+    const rewards = config.rewards ?? {}
+    const milestones = Object.keys(rewards)
+      .map(Number)
+      .filter((n) => !Number.isNaN(n))
+      .sort((a, b) => a - b)
+    const nextStamp = card.balance + 1
+    const completesNow = nextStamp >= needed
+    const hitMilestone = milestones
+      .filter((m) => card.balance < m && nextStamp >= m)
+      .pop()
+
     return (
-      <button type="button" className="btn btn-primary w-full" disabled={busy} onClick={onStamp}>
-        {busy ? "…" : "+1 Sello"}
-      </button>
+      <div className="space-y-3">
+        <div className="rounded-lg bg-lh-bg px-3 py-2.5 text-sm space-y-1.5">
+          <div className="font-semibold">
+            Progreso: {card.balance} de {needed} sellos
+          </div>
+          {completesNow ? (
+            <div className="font-semibold text-[#166534]">
+              🎁 ¡Con esta visita completa la tarjeta! Recompensa:{" "}
+              {rewards[String(needed)] ?? "premio del programa"}
+            </div>
+          ) : hitMilestone != null ? (
+            <div className="font-semibold text-[#166534]">
+              🎁 ¡En ESTA visita gana: {rewards[String(hitMilestone)]}!
+            </div>
+          ) : null}
+          {milestones.length > 0 && (
+            <ul className="text-xs text-lh-muted space-y-0.5">
+              {milestones.map((m) => (
+                <li key={m}>
+                  {m <= card.balance ? "✅" : m === nextStamp ? "👉" : "○"} Sello {m}:{" "}
+                  {rewards[String(m)]}
+                </li>
+              ))}
+            </ul>
+          )}
+          {milestones.length === 0 && !completesNow && (
+            <div className="text-xs text-lh-muted">
+              Faltan {needed - card.balance} sellos para la recompensa.
+            </div>
+          )}
+        </div>
+        <button type="button" className="btn btn-primary w-full" disabled={busy} onClick={onStamp}>
+          {busy ? "…" : "+1 Sello"}
+        </button>
+      </div>
     )
   }
 
@@ -391,9 +481,20 @@ function ActionPanel({
     )
   }
 
-  if (type === "DISCOUNT") {
+  if (type === "DISCOUNT" && config.type === "DISCOUNT") {
     return (
       <div className="space-y-2">
+        <p className="text-sm rounded-lg bg-lh-bg px-3 py-2">
+          Beneficio:{" "}
+          <strong>
+            {config.discountType === "percent"
+              ? `${config.value}% de descuento`
+              : `$${config.value} de descuento`}
+          </strong>
+          {config.minPurchase != null && (
+            <span className="text-lh-muted"> · compra mínima ${config.minPurchase}</span>
+          )}
+        </p>
         <label className="flex flex-col gap-1">
           <span className="label">Monto de compra (opcional)</span>
           <input
@@ -411,11 +512,17 @@ function ActionPanel({
     )
   }
 
-  if (type === "COUPON") {
+  if (type === "COUPON" && config.type === "COUPON") {
     return (
-      <button type="button" className="btn btn-primary w-full" disabled={busy} onClick={onCoupon}>
-        Canjear cupón
-      </button>
+      <div className="space-y-2">
+        <p className="text-sm rounded-lg bg-lh-bg px-3 py-2">
+          Beneficio: <strong>${config.discount} de descuento</strong>
+          <span className="text-lh-muted"> · cupón {config.code}</span>
+        </p>
+        <button type="button" className="btn btn-primary w-full" disabled={busy} onClick={onCoupon}>
+          Canjear cupón
+        </button>
+      </div>
     )
   }
 

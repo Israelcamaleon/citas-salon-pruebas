@@ -54,7 +54,21 @@ export async function listTransactions(limit = 50): Promise<LoyaltyTransaction[]
   return rows.map(toTransaction)
 }
 
-export async function stampCard(body: unknown, staffId?: number): Promise<LoyaltyTransaction> {
+export type StampInfo = {
+  stampsBefore: number
+  stampsAfter: number
+  stampsNeeded: number
+  completed: boolean
+  /** Recompensa ganada en ESTA visita (si aplica) */
+  reward: string | null
+  /** Siguiente beneficio pendiente después de esta visita */
+  nextReward: { atStamps: number; text: string } | null
+}
+
+export async function stampCard(
+  body: unknown,
+  staffId?: number
+): Promise<LoyaltyTransaction & { stampInfo: StampInfo }> {
   const parsed = stampSchema.safeParse(body)
   if (!parsed.success) throw new Error(parsed.error.errors[0]?.message || "Datos inválidos")
 
@@ -65,8 +79,35 @@ export async function stampCard(body: unknown, staffId?: number): Promise<Loyalt
   const config = parseProgramConfig(card.program.type, card.program.config)
   if (config.type !== "STAMP") throw new Error("Configuración inválida")
 
-  const newBalance = card.balance + amount
-  const completed = newBalance >= config.stampsNeeded
+  const stampsBefore = card.balance
+  const stampsAfterRaw = card.balance + amount
+  const completed = stampsAfterRaw >= config.stampsNeeded
+
+  const rewards = config.rewards ?? {}
+  const milestones = Object.keys(rewards)
+    .map(Number)
+    .filter((n) => !Number.isNaN(n))
+    .sort((a, b) => a - b)
+
+  // Recompensa ganada en ESTA visita: el hito más alto alcanzado con este sello
+  let reward: string | null = null
+  if (completed) {
+    reward = rewards[String(config.stampsNeeded)] ?? "Recompensa completada"
+  } else {
+    const hit = milestones
+      .filter((m) => m < config.stampsNeeded && stampsBefore < m && stampsAfterRaw >= m)
+      .pop()
+    if (hit != null) reward = rewards[String(hit)] ?? null
+  }
+
+  // Siguiente beneficio pendiente después de esta visita
+  let nextReward: { atStamps: number; text: string } | null = null
+  if (!completed) {
+    const next = milestones.find((m) => m > stampsAfterRaw)
+    if (next != null && rewards[String(next)]) {
+      nextReward = { atStamps: next, text: rewards[String(next)] }
+    }
+  }
 
   const [tx] = await prisma.$transaction([
     prisma.loyaltyTransaction.create({
@@ -75,20 +116,30 @@ export async function stampCard(body: unknown, staffId?: number): Promise<Loyalt
         staffId: staffId ?? null,
         type: "STAMP",
         amount,
-        notes: notes ?? (completed ? `Recompensa: ${config.rewards?.[String(config.stampsNeeded)] || "completado"}` : null),
+        notes: notes ?? (reward ? `Recompensa: ${reward}` : null),
       },
       include: { staff: { select: { id: true, name: true } } },
     }),
     prisma.loyaltyCard.update({
       where: { id: cardId },
       data: {
-        balance: completed ? 0 : newBalance,
+        balance: completed ? 0 : stampsAfterRaw,
         status: completed ? "REDEEMED" : "ACTIVE",
       },
     }),
   ])
 
-  return toTransaction(tx)
+  return {
+    ...toTransaction(tx),
+    stampInfo: {
+      stampsBefore,
+      stampsAfter: completed ? config.stampsNeeded : stampsAfterRaw,
+      stampsNeeded: config.stampsNeeded,
+      completed,
+      reward,
+      nextReward,
+    },
+  }
 }
 
 export async function useService(body: unknown, staffId?: number): Promise<LoyaltyTransaction> {
