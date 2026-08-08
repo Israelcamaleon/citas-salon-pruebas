@@ -5,4 +5,5 @@ export const createCustomerSchema = z.object({
   phone: z.string().trim().min(1, "El teléfono es obligatorio"),
   email: z.string().trim().optional().nullable(),
   notes: z.string().trim().optional().nullable(),
+  sexo: z.enum(["mujer", "hombre", "otro"]).optional().nullable(),
 })

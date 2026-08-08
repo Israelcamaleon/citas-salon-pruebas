@@ -29,6 +29,7 @@ export default function LoyaltyOperate() {
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [mostrarAlta, setMostrarAlta] = useState(false)
   const [nuevoNombre, setNuevoNombre] = useState("")
+  const [nuevoSexo, setNuevoSexo] = useState("")
   const [cards, setCards] = useState<LoyaltyCard[]>([])
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -81,11 +82,13 @@ export default function LoyaltyOperate() {
       const res = await axios.post("/api/customers", {
         name: nuevoNombre.trim(),
         phone: normalizePhoneMX(phone),
+        sexo: nuevoSexo || null,
       })
       await mutateCustomers()
       const creado: Customer = res.data
       setMostrarAlta(false)
       setNuevoNombre("")
+      setNuevoSexo("")
       setCustomer(creado)
       const cardsRes = await axios.get(`/api/loyalty/cards?customerId=${creado.id}`)
       const list: LoyaltyCard[] = cardsRes.data
@@ -164,6 +167,16 @@ export default function LoyaltyOperate() {
                 onChange={(e) => setNuevoNombre(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), altaCliente())}
               />
+              <select
+                className="input"
+                value={nuevoSexo}
+                onChange={(e) => setNuevoSexo(e.target.value)}
+              >
+                <option value="">Sexo (opcional)</option>
+                <option value="mujer">Mujer</option>
+                <option value="hombre">Hombre</option>
+                <option value="otro">Otro</option>
+              </select>
               <div className="text-xs text-lh-muted">Celular: {phone}</div>
               <button
                 type="button"

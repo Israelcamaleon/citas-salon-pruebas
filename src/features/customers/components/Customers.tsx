@@ -5,7 +5,9 @@ import Link from "next/link"
 import { useRef, useState, useMemo } from "react"
 import { asArray, fetcher } from "@/lib/api"
 
-type Customer = { id:number; name:string; phone:string|null; email:string|null; notes:string|null }
+type Customer = { id:number; name:string; phone:string|null; email:string|null; notes:string|null; sexo:string|null }
+
+const SEXO_LABELS: Record<string,string> = { mujer:"Mujer", hombre:"Hombre", otro:"Otro" }
 
 export default function Customers(){
   const formRef=useRef<HTMLFormElement>(null)
@@ -29,6 +31,7 @@ export default function Customers(){
     const fd=new FormData(e.currentTarget)
     const payload:any={}
     fd.forEach((v,k)=>{ payload[k]=String(v).trim() })
+    if(!payload.sexo) delete payload.sexo
     if(!payload.name){ alert('Nombre es requerido'); return }
     try{
       await axios.post('/api/customers', payload)
@@ -72,6 +75,15 @@ export default function Customers(){
           <input name="phone" className="input" placeholder="55..." />
         </label>
         <label className="flex flex-col gap-1">
+          <span className="text-sm">Sexo</span>
+          <select name="sexo" className="input" defaultValue="">
+            <option value="">—</option>
+            <option value="mujer">Mujer</option>
+            <option value="hombre">Hombre</option>
+            <option value="otro">Otro</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
           <span className="text-sm">Email</span>
           <input name="email" type="email" className="input" placeholder="correo@dominio.com" />
         </label>
@@ -96,6 +108,7 @@ export default function Customers(){
             <tr className="text-left border-b">
               <th className="p-2">ID</th>
               <th className="p-2">Nombre</th>
+              <th className="p-2">Sexo</th>
               <th className="p-2">Teléfono</th>
               <th className="p-2">Email</th>
               <th className="p-2">Notas</th>
@@ -112,6 +125,16 @@ export default function Customers(){
                     {isEditing ? (
                       <input className="input" value={editRow.name||''} onChange={e=>setEditRow({...editRow, name:e.target.value})} />
                     ) : row.name}
+                  </td>
+                  <td className="p-2">
+                    {isEditing ? (
+                      <select className="input" value={editRow.sexo||''} onChange={e=>setEditRow({...editRow, sexo:e.target.value||null})}>
+                        <option value="">—</option>
+                        <option value="mujer">Mujer</option>
+                        <option value="hombre">Hombre</option>
+                        <option value="otro">Otro</option>
+                      </select>
+                    ) : (row.sexo ? SEXO_LABELS[row.sexo] ?? row.sexo : "—")}
                   </td>
                   <td className="p-2">
                     {isEditing ? (

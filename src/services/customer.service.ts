@@ -16,13 +16,14 @@ export async function createCustomer(body: unknown) {
     throw new Error(parsed.error.errors[0]?.message || "Datos inválidos")
   }
 
-  const { name, phone, email, notes } = parsed.data
+  const { name, phone, email, notes, sexo } = parsed.data
   return prisma.customer.create({
     data: {
       name,
       phone: normalizePhoneMX(phone) || phone,
       email: email ?? null,
       notes: notes ?? null,
+      sexo: sexo ?? null,
     },
   })
 }
@@ -33,6 +34,10 @@ export async function updateCustomer(id: number, body: Record<string, unknown>) 
   if (body.name !== undefined) data.name = String(body.name).trim()
   if (body.email !== undefined) data.email = body.email ? String(body.email).trim() : null
   if (body.notes !== undefined) data.notes = body.notes ? String(body.notes).trim() : null
+  if (body.sexo !== undefined) {
+    const s = String(body.sexo).trim().toLowerCase()
+    data.sexo = ["mujer", "hombre", "otro"].includes(s) ? s : null
+  }
   if (body.phone !== undefined) {
     const normalized = normalizePhoneMX(String(body.phone))
     data.phone = normalized || null

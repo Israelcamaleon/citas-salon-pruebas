@@ -127,6 +127,7 @@ export default function BookingsSection() {
   const [newCustomerName, setNewCustomerName] = useState("");
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
   const [newCustomerEmail, setNewCustomerEmail] = useState("");
+  const [newCustomerSexo, setNewCustomerSexo] = useState("");
   const [savingCustomer, setSavingCustomer] = useState(false);
 
   const [savingBooking, setSavingBooking] = useState(false);
@@ -200,6 +201,7 @@ export default function BookingsSection() {
           phone: newCustomerPhone.trim(),
           email: newCustomerEmail.trim() || null,
           notes: null,
+          sexo: newCustomerSexo || null,
         }),
       });
       if (!res.ok) {
@@ -221,6 +223,7 @@ export default function BookingsSection() {
       setNewCustomerName("");
       setNewCustomerPhone("");
       setNewCustomerEmail("");
+      setNewCustomerSexo("");
       try {
         await mutateCustomers();
       } catch {
@@ -506,6 +509,16 @@ export default function BookingsSection() {
                   value={newCustomerEmail}
                   onChange={(e) => setNewCustomerEmail(e.target.value)}
                 />
+                <select
+                  className="w-full rounded-md border px-3 py-2 text-sm"
+                  value={newCustomerSexo}
+                  onChange={(e) => setNewCustomerSexo(e.target.value)}
+                >
+                  <option value="">Sexo (opcional)</option>
+                  <option value="mujer">Mujer</option>
+                  <option value="hombre">Hombre</option>
+                  <option value="otro">Otro</option>
+                </select>
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"
