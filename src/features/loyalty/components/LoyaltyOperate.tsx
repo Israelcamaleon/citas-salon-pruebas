@@ -24,9 +24,11 @@ type StampInfo = {
 }
 
 export default function LoyaltyOperate() {
-  const { data: customers } = useSWR<Customer[]>("/api/customers", fetcher)
+  const { data: customers, mutate: mutateCustomers } = useSWR<Customer[]>("/api/customers", fetcher)
   const [phone, setPhone] = useState("")
   const [customer, setCustomer] = useState<Customer | null>(null)
+  const [mostrarAlta, setMostrarAlta] = useState(false)
+  const [nuevoNombre, setNuevoNombre] = useState("")
   const [cards, setCards] = useState<LoyaltyCard[]>([])
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -48,12 +50,14 @@ export default function LoyaltyOperate() {
     try {
       const found = (customers ?? []).find((c) => normalizePhoneMX(c.phone) === norm)
       if (!found) {
-        alert("Cliente no encontrado. Emite una tarjeta primero.")
         setCustomer(null)
         setCards([])
         setSelectedCardId(null)
+        setMostrarAlta(true)
         return
       }
+      setMostrarAlta(false)
+      setNuevoNombre("")
       setCustomer(found)
       const res = await axios.get(`/api/loyalty/cards?customerId=${found.id}`)
       const list: LoyaltyCard[] = res.data
@@ -62,6 +66,34 @@ export default function LoyaltyOperate() {
     } catch (err: unknown) {
       const msg = axios.isAxiosError(err) ? err.response?.data?.error : "Error"
       alert(msg || "Error al buscar")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function altaCliente() {
+    if (!nuevoNombre.trim()) {
+      alert("Escribe el nombre del cliente")
+      return
+    }
+    setLoading(true)
+    try {
+      const res = await axios.post("/api/customers", {
+        name: nuevoNombre.trim(),
+        phone: normalizePhoneMX(phone),
+      })
+      await mutateCustomers()
+      const creado: Customer = res.data
+      setMostrarAlta(false)
+      setNuevoNombre("")
+      setCustomer(creado)
+      const cardsRes = await axios.get(`/api/loyalty/cards?customerId=${creado.id}`)
+      const list: LoyaltyCard[] = cardsRes.data
+      setCards(list)
+      setSelectedCardId(list.find((c) => c.status === "ACTIVE")?.id ?? null)
+    } catch (err: unknown) {
+      const msg = axios.isAxiosError(err) ? err.response?.data?.error : "Error al crear cliente"
+      alert(msg || "Error al crear cliente")
     } finally {
       setLoading(false)
     }
@@ -119,6 +151,30 @@ export default function LoyaltyOperate() {
               </button>
             </div>
           </label>
+
+          {mostrarAlta && !customer && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 space-y-2">
+              <div className="text-sm font-semibold text-amber-800">
+                Este celular no está registrado — dalo de alta aquí mismo:
+              </div>
+              <input
+                className="input"
+                placeholder="Nombre completo del cliente"
+                value={nuevoNombre}
+                onChange={(e) => setNuevoNombre(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), altaCliente())}
+              />
+              <div className="text-xs text-lh-muted">Celular: {phone}</div>
+              <button
+                type="button"
+                className="btn btn-primary w-full"
+                onClick={altaCliente}
+                disabled={loading}
+              >
+                {loading ? "…" : "➕ Dar de alta y continuar"}
+              </button>
+            </div>
+          )}
 
           {customer && (
             <div className="rounded-lg bg-lh-bg px-3 py-2 text-sm">

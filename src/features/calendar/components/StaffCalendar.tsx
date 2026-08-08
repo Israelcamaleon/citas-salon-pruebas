@@ -26,6 +26,8 @@ export default function Calendar() {
   const [weekStart, setWeekStart] = useState(() => dayjs().startOf('week'))
   const [selectedDate, setSelectedDate] = useState(() => dayjs())
   const [selectedBooking, setSelectedBooking] = useState<any|null>(null)
+  const [moving, setMoving] = useState<any|null>(null)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     const saved = localStorage.getItem('cal_view') as ViewMode | null
@@ -74,6 +76,39 @@ export default function Calendar() {
   function goToday() { const now = dayjs(); setSelectedDate(now); setWeekStart(now.startOf('week')); setView('day') }
 
   async function deleteBooking(id: number) { await axios.delete(`/api/bookings/${id}`); mutate() }
+
+  // Mover cita a otro día/hora (y opcionalmente otro staff en vista de día)
+  async function moveBooking(b: any, dayKey: string, hour: number, staffId?: number) {
+    if (saving) return
+    setSaving(true)
+    try {
+      const nuevaFecha = dayjs(dayKey).hour(hour).minute(dayjs(b.date).minute()).second(0)
+      const body: Record<string, unknown> = { date: nuevaFecha.toISOString() }
+      if (staffId && staffId !== b.staffId) body.staffId = staffId
+      await axios.patch(`/api/bookings/${b.id}`, body)
+      await mutate()
+    } catch {
+      alert("No se pudo mover la cita")
+    } finally {
+      setSaving(false)
+      setMoving(null)
+    }
+  }
+
+  function cellProps(dayKey: string, hour: number, staffId?: number) {
+    return {
+      onDragOver: (e: React.DragEvent) => e.preventDefault(),
+      onDrop: (e: React.DragEvent) => {
+        e.preventDefault()
+        const id = Number(e.dataTransfer.getData("text/booking-id"))
+        const b = (bookings ?? []).find((x: any) => x.id === id)
+        if (b) moveBooking(b, dayKey, hour, staffId)
+      },
+      onClick: () => {
+        if (moving) moveBooking(moving, dayKey, hour, staffId)
+      },
+    }
+  }
 
   // Small helpers
   const startHour = (iso: string) => dayjs(iso).hour()
@@ -180,6 +215,17 @@ export default function Calendar() {
         ))}
       </div>
 
+      {/* Aviso modo mover */}
+      {moving && (
+        <div className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm flex items-center justify-between gap-2 flex-wrap">
+          <span>
+            📌 Toca el día y hora a donde quieres mover la cita de <strong>{moving.customer?.name ?? "este cliente"}</strong>
+            {view === 'day' && " — si la sueltas en otra columna, cambia de colaborador"}
+          </span>
+          <button className="btn btn-sm" onClick={() => setMoving(null)}>Cancelar</button>
+        </div>
+      )}
+
       <div className="overflow-x-auto">
         {view==='week' ? (
           <table className="min-w-full border-collapse table-fixed">
@@ -202,7 +248,7 @@ export default function Calendar() {
                       dayjs(b.date).format('YYYY-MM-DD') === dayKey && startHour(b.date) === h
                     )
                     return (
-                      <td key={dayKey} className="p-2 border-b">
+                      <td key={dayKey} className={`p-2 border-b ${moving ? "cursor-pointer bg-blue-50/40 hover:bg-blue-100" : ""}`} {...cellProps(dayKey, h)}>
                         <div className="space-y-2">
                           {cellBookings.filter((b:any)=> selectedStaffIdsForLoc.includes(b.staffId)).map((b: any) => {
                             let bg = undefined
@@ -211,12 +257,22 @@ export default function Calendar() {
                               if (idx >= 0 && staffColors[idx]) bg = staffColors[idx]
                             }
                             return (
-                              <div key={b.id} className="p-2 rounded-lg border" onClick={()=>setSelectedBooking(b)} style={bg ? { background: bg } : CardBg(b.staffId ?? b.serviceId ?? b.id)}>
+                              <div
+                                key={b.id}
+                                className={`p-2 rounded-lg border cursor-grab ${moving?.id === b.id ? "ring-2 ring-blue-400" : ""}`}
+                                draggable
+                                onDragStart={(e)=>{ e.stopPropagation(); e.dataTransfer.setData("text/booking-id", String(b.id)) }}
+                                onClick={(e)=>{ e.stopPropagation(); setSelectedBooking(b) }}
+                                style={bg ? { background: bg } : CardBg(b.staffId ?? b.serviceId ?? b.id)}
+                              >
                                 <div className="font-medium text-sm">{b.service?.name ?? `Servicio #${b.serviceId}`}</div>
                                 <div className="text-xs">{new Date(b.date).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })} · {b.durationMin} min</div>
                                 <div className="text-xs">Staff: {b.staff?.name ?? `#${b.staffId}`}</div>
                                 <div className="text-xs">Cliente: {b.customer?.name ?? b.customerId}</div>
-                                <button className="btn mt-2" onClick={() => deleteBooking(b.id)}>Eliminar</button>
+                                <div className="flex gap-1 mt-2">
+                                  <button className="btn" onClick={(e) => { e.stopPropagation(); setMoving(b) }}>↔ Mover</button>
+                                  <button className="btn" onClick={(e) => { e.stopPropagation(); deleteBooking(b.id) }}>Eliminar</button>
+                                </div>
                               </div>
                             )
                           })}
@@ -256,14 +312,24 @@ export default function Calendar() {
                       b.staffId === s.id
                     )
                     return (
-                      <td key={`${s.id}-${h}`} className="p-2 border-b">
+                      <td key={`${s.id}-${h}`} className={`p-2 border-b ${moving ? "cursor-pointer bg-blue-50/40 hover:bg-blue-100" : ""}`} {...cellProps(dayKey, h, s.id)}>
                         <div className="space-y-2">
                           {cellBookings.map((b: any) => (
-                            <div key={b.id} className="p-2 rounded-lg border" onClick={()=>setSelectedBooking(b)} style={{ background: staffColors[i] }}>
+                            <div
+                              key={b.id}
+                              className={`p-2 rounded-lg border cursor-grab ${moving?.id === b.id ? "ring-2 ring-blue-400" : ""}`}
+                              draggable
+                              onDragStart={(e)=>{ e.stopPropagation(); e.dataTransfer.setData("text/booking-id", String(b.id)) }}
+                              onClick={(e)=>{ e.stopPropagation(); setSelectedBooking(b) }}
+                              style={{ background: staffColors[i] }}
+                            >
                               <div className="font-medium text-sm">{b.service?.name ?? `Servicio #${b.serviceId}`}</div>
                               <div className="text-xs">{new Date(b.date).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })} · {b.durationMin} min</div>
                               <div className="text-xs">Cliente: {b.customer?.name ?? b.customerId}</div>
-                              <button className="btn mt-2" onClick={() => deleteBooking(b.id)}>Eliminar</button>
+                              <div className="flex gap-1 mt-2">
+                                <button className="btn" onClick={(e) => { e.stopPropagation(); setMoving(b) }}>↔ Mover</button>
+                                <button className="btn" onClick={(e) => { e.stopPropagation(); deleteBooking(b.id) }}>Eliminar</button>
+                              </div>
                             </div>
                           ))}
                         </div>
