@@ -183,6 +183,20 @@ export default function LoyaltyOperate() {
                 <option value="hombre">Hombre</option>
                 <option value="otro">Otro</option>
               </select>
+              <input
+                className="input"
+                type="email"
+                placeholder="Correo electrónico (opcional)"
+                value={nuevoEmail}
+                onChange={(e) => setNuevoEmail(e.target.value)}
+              />
+              <textarea
+                className="input"
+                rows={2}
+                placeholder="Notas (alergias, preferencias, etc. — opcional)"
+                value={nuevasNotas}
+                onChange={(e) => setNuevasNotas(e.target.value)}
+              />
               <div className="text-xs text-lh-muted">Celular: {phone}</div>
               <button
                 type="button"
