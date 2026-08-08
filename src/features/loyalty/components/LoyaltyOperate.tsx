@@ -30,6 +30,8 @@ export default function LoyaltyOperate() {
   const [mostrarAlta, setMostrarAlta] = useState(false)
   const [nuevoNombre, setNuevoNombre] = useState("")
   const [nuevoSexo, setNuevoSexo] = useState("")
+  const [nuevoEmail, setNuevoEmail] = useState("")
+  const [nuevasNotas, setNuevasNotas] = useState("")
   const [cards, setCards] = useState<LoyaltyCard[]>([])
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -83,12 +85,16 @@ export default function LoyaltyOperate() {
         name: nuevoNombre.trim(),
         phone: normalizePhoneMX(phone),
         sexo: nuevoSexo || null,
+        email: nuevoEmail.trim() || null,
+        notes: nuevasNotas.trim() || null,
       })
       await mutateCustomers()
       const creado: Customer = res.data
       setMostrarAlta(false)
       setNuevoNombre("")
       setNuevoSexo("")
+      setNuevoEmail("")
+      setNuevasNotas("")
       setCustomer(creado)
       const cardsRes = await axios.get(`/api/loyalty/cards?customerId=${creado.id}`)
       const list: LoyaltyCard[] = cardsRes.data
@@ -584,6 +590,20 @@ function ActionPanel({
   if (type === "COUPON" && config.type === "COUPON") {
     return (
       <div className="space-y-2">
+        <p className="text-sm rounded-lg bg-lh-bg px-3 py-2">
+          Beneficio: <strong>${config.discount} de descuento</strong>
+          <span className="text-lh-muted"> · cupón {config.code}</span>
+        </p>
+        <button type="button" className="btn btn-primary w-full" disabled={busy} onClick={onCoupon}>
+          Canjear cupón
+        </button>
+      </div>
+    )
+  }
+
+  return null
+}
+    <div className="space-y-2">
         <p className="text-sm rounded-lg bg-lh-bg px-3 py-2">
           Beneficio: <strong>${config.discount} de descuento</strong>
           <span className="text-lh-muted"> · cupón {config.code}</span>

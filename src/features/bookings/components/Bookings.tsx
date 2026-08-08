@@ -3,6 +3,9 @@
 import { useState, useMemo, useEffect } from "react";
 import useSWR from "swr";
 import { asArray, fetcher } from "@/lib/api";
+import BookingActions from "./BookingActions";
+import { statusLabel, statusChipClass } from "@/lib/bookingStatus";
+import { toast } from "@/lib/toast";
 
 type Customer = {
   id: number;
@@ -151,12 +154,15 @@ export default function BookingsSection() {
     return base.filter((c) => (c.name || "").toLowerCase().includes(q));
   }, [customers, customerSearch]);
 
+  const [mostrarFormulario, setMostrarFormulario] = useState(false);
+
   const upcomingBookings = useMemo(() => {
     const now = Date.now();
     return bookings
       .filter((b) => {
         const t = new Date(b.date).getTime();
         if (Number.isNaN(t) || t < now) return false;
+        if ((b.status ?? "scheduled") === "cancelled") return false;
         if (upcomingLocationFilter && b.locationId !== Number(upcomingLocationFilter)) {
           return false;
         }
@@ -164,6 +170,28 @@ export default function BookingsSection() {
       })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [bookings, upcomingLocationFilter]);
+
+  // Agenda de hoy: todas las citas del día (incluye completadas/canceladas, ordenadas por hora)
+  const hoyBookings = useMemo(() => {
+    const hoy = new Date();
+    const esHoy = (iso: string) => {
+      const d = new Date(iso);
+      return (
+        d.getFullYear() === hoy.getFullYear() &&
+        d.getMonth() === hoy.getMonth() &&
+        d.getDate() === hoy.getDate()
+      );
+    };
+    return bookings
+      .filter((b) => esHoy(b.date))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [bookings]);
+
+  const hoyTexto = new Date().toLocaleDateString("es-MX", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
 
   // si cambiamos de servicio, sugerir duración
   useEffect(() => {
@@ -188,7 +216,7 @@ export default function BookingsSection() {
 
   async function handleCreateCustomer() {
     if (!newCustomerName.trim() || !newCustomerPhone.trim()) {
-      alert("Nombre y teléfono son obligatorios para crear un cliente.");
+      toast("Nombre y teléfono son obligatorios para crear un cliente.", "error");
       return;
     }
     try {
@@ -212,7 +240,7 @@ export default function BookingsSection() {
         } catch {
           // ignore
         }
-        alert(message);
+        toast(message, "error");
         return;
       }
       const created: Customer = await res.json();
@@ -229,10 +257,10 @@ export default function BookingsSection() {
       } catch {
         // ignore
       }
-      alert("Cliente creado correctamente.");
+      toast("Cliente creado correctamente.");
     } catch (err) {
       console.error(err);
-      alert("Error inesperado creando el cliente.");
+      toast("Error inesperado creando el cliente.", "error");
     } finally {
       setSavingCustomer(false);
     }
@@ -241,7 +269,7 @@ export default function BookingsSection() {
   async function handleCreateBooking(e: any) {
     e.preventDefault();
     if (!canSubmitBooking) {
-      alert("Completa todos los campos, incluyendo cliente.");
+      toast("Completa todos los campos, incluyendo cliente.", "error");
       return;
     }
     try {
@@ -267,7 +295,7 @@ export default function BookingsSection() {
         } catch {
           // ignore
         }
-        alert(message);
+        toast(message, "error");
         return;
       }
       await res.json();
@@ -276,10 +304,11 @@ export default function BookingsSection() {
       } catch {
         // ignore
       }
-      alert("Cita creada correctamente.");
+      toast("✅ Cita creada correctamente");
+      setMostrarFormulario(false);
     } catch (err) {
       console.error(err);
-      alert("Error inesperado creando la cita.");
+      toast("Error inesperado creando la cita.", "error");
     } finally {
       setSavingBooking(false);
     }
@@ -295,24 +324,81 @@ export default function BookingsSection() {
             : "Intenta recargar la página."}
         </div>
       )}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h2 className="text-xl font-semibold">Citas rápidas</h2>
-          <p className="text-sm text-gray-600">
-            Flujo simplificado: selecciona servicio, cliente y confirma.
-          </p>
+          <h2 className="text-xl font-semibold">Agenda</h2>
+          <p className="text-sm text-gray-600 capitalize">{hoyTexto}</p>
         </div>
+        <button
+          type="button"
+          className="rounded-md bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow"
+          onClick={() => setMostrarFormulario((v) => !v)}
+        >
+          {mostrarFormulario ? "Cerrar formulario" : "＋ Nueva cita"}
+        </button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      {/* Agenda de hoy */}
+      <div className="space-y-2 rounded-lg border bg-white p-4 shadow-sm">
+        <h3 className="text-sm font-semibold">
+          Hoy ({hoyBookings.length} cita{hoyBookings.length === 1 ? "" : "s"})
+        </h3>
+        {!hoyBookings.length && (
+          <p className="text-sm text-gray-500">
+            No hay citas hoy. Toca "＋ Nueva cita" para agendar.
+          </p>
+        )}
+        <ul className="space-y-2">
+          {hoyBookings.map((b) => (
+            <li
+              key={b.id}
+              className={`rounded-md border px-3 py-2.5 space-y-2 ${
+                (b.status ?? "scheduled") === "completed"
+                  ? "opacity-60"
+                  : (b.status ?? "scheduled") === "cancelled"
+                  ? "opacity-50 border-red-300"
+                  : ""
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="text-lg font-bold">
+                  {new Date(b.date).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
+                </span>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusChipClass(b.status)}`}>
+                  {statusLabel(b.status)}
+                </span>
+              </div>
+              <div className="text-sm">
+                <strong>{b.service?.name || "Servicio"}</strong> · {b.customer?.name || "Cliente"}
+              </div>
+              <div className="text-xs text-gray-600">
+                Atiende: {b.staff?.name || "—"} · {b.durationMin} min
+                {b.location ? ` · ${b.location.name}` : ""}
+              </div>
+              <BookingActions
+                bookingId={b.id}
+                status={b.status}
+                customerId={b.customerId}
+                customerName={b.customer?.name}
+                customerPhone={b.customer?.phone}
+                onChanged={() => mutateBookings()}
+                compact
+              />
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className={mostrarFormulario ? "grid gap-6 md:grid-cols-2" : ""}>
         {/* Formulario principal de cita */}
+        {mostrarFormulario && (
         <form
           onSubmit={handleCreateBooking}
           className="space-y-4 rounded-lg border bg-white p-4 shadow-sm"
         >
           {creatingOrLoadingCatalogs && (
             <p className="text-sm text-gray-500">
-              Cargando catálogos (servicios, staff, clientes)...
+              Cargando catálogos (servicios, colaboradores, clientes)...
             </p>
           )}
 
@@ -367,14 +453,14 @@ export default function BookingsSection() {
 
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-2">
-              <label className="block text-sm font-medium">Staff</label>
+              <label className="block text-sm font-medium">Colaborador</label>
               <select
                 className="w-full rounded-md border px-3 py-2 text-sm"
                 value={staffId}
                 onChange={(e) => setStaffId(e.target.value)}
                 required
               >
-                <option value="">Selecciona staff</option>
+                <option value="">Selecciona colaborador</option>
                 {staffs
                   .filter((s) => s.isActive)
                   .map((s) => (
@@ -548,6 +634,7 @@ export default function BookingsSection() {
             {savingBooking ? "Guardando cita..." : "Crear cita"}
           </button>
         </form>
+        )}
 
         {/* Próximas citas: solo futuras, ordenadas, filtro por sucursal */}
         <div className="space-y-3 rounded-lg border bg-white p-4 shadow-sm">
@@ -582,20 +669,22 @@ export default function BookingsSection() {
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium">
-                    {b.service?.name || `Servicio #${b.serviceId}`}
+                    {b.service?.name || "Servicio"}
                   </span>
                   <span className="text-xs text-gray-500">
                     {formatDateTimeHuman(b.date)}
                   </span>
                 </div>
-                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-600">
+                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-600 items-center">
                   <span>
-                    Cliente: {b.customer?.name || `#${b.customerId}`}
+                    Cliente: {b.customer?.name || "—"}
                   </span>
-                  <span>Staff: {b.staff?.name || `#${b.staffId}`}</span>
+                  <span>Atiende: {b.staff?.name || "—"}</span>
                   <span>{b.durationMin} min</span>
-                  {b.location && <span>Sucursal: {b.location.name}</span>}
-                  {b.status && <span>Estado: {b.status}</span>}
+                  {b.location && <span>{b.location.name}</span>}
+                  <span className={`rounded-full px-2 py-0.5 font-medium ${statusChipClass(b.status)}`}>
+                    {statusLabel(b.status)}
+                  </span>
                 </div>
               </li>
             ))}

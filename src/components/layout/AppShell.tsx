@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react"
 import useSWR from "swr"
 import { createSupabaseBrowser } from "@/lib/supabase/client"
 import BrandBar from "@/components/layout/BrandBar"
+import { ToastHost } from "@/lib/toast"
 
 const fetcher = (url: string) =>
   fetch(url, { credentials: "same-origin" }).then((r) => (r.ok ? r.json() : null))
@@ -76,7 +77,7 @@ export default function AppShell({ children, loyaltyEnabled }: Props) {
           <div className="text-white text-[17px] font-bold leading-tight truncate">
             {me?.staff ? "Glam Schedule" : "…"}
           </div>
-          <p className="text-lh-sidebar-text text-[11px] mt-0.5">Panel de administración</p>
+          <p className="text-lh-sidebar-text text-[11px] mt-0.5">Panel del salón</p>
         </div>
         <button
           type="button"
@@ -180,6 +181,7 @@ export default function AppShell({ children, loyaltyEnabled }: Props) {
         </header>
         <main className="flex-1 overflow-y-auto p-3 md:p-6">{children}</main>
       </div>
+      <ToastHost />
     </div>
   )
 }

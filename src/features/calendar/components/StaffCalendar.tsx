@@ -4,7 +4,10 @@ import dayjs from "dayjs"
 import { useMemo, useState, useEffect } from "react"
 import axios from "axios"
 import QuickEditBooking from "@/features/bookings/components/QuickEditBooking"
+import NewBookingModal from "./NewBookingModal"
+import { statusLabel, statusChipClass, statusCardClass } from "@/lib/bookingStatus"
 import { asArray, fetcher } from "@/lib/api"
+import { toast } from "@/lib/toast"
 
 function colorFromId(id:number|string, s:number=65, l:number=88){ 
   const n = Array.from(String(id)).reduce((a,c)=>a + c.charCodeAt(0), 0) % 360; 
@@ -28,6 +31,7 @@ export default function Calendar() {
   const [selectedBooking, setSelectedBooking] = useState<any|null>(null)
   const [moving, setMoving] = useState<any|null>(null)
   const [saving, setSaving] = useState(false)
+  const [nuevaCita, setNuevaCita] = useState<{ fecha: string; staffId?: number | null } | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem('cal_view') as ViewMode | null
@@ -101,8 +105,9 @@ export default function Calendar() {
       if (staffId && staffId !== b.staffId) body.staffId = staffId
       await axios.patch(`/api/bookings/${b.id}`, body)
       await mutate()
+      toast("📅 Cita movida")
     } catch {
-      alert("No se pudo mover la cita")
+      toast("No se pudo mover la cita", "error")
     } finally {
       setSaving(false)
       setMoving(null)
@@ -119,7 +124,12 @@ export default function Calendar() {
         if (b) moveBooking(b, dayKey, hour, staffId)
       },
       onClick: () => {
-        if (moving) moveBooking(moving, dayKey, hour, staffId)
+        if (moving) {
+          moveBooking(moving, dayKey, hour, staffId)
+        } else {
+          const hh = String(hour).padStart(2, "0")
+          setNuevaCita({ fecha: `${dayKey}T${hh}:00`, staffId: staffId ?? null })
+        }
       },
     }
   }
@@ -273,16 +283,19 @@ export default function Calendar() {
                             return (
                               <div
                                 key={b.id}
-                                className={`p-2 rounded-lg border cursor-grab ${moving?.id === b.id ? "ring-2 ring-blue-400" : ""}`}
+                                className={`p-2 rounded-lg border cursor-grab ${moving?.id === b.id ? "ring-2 ring-blue-400" : ""} ${statusCardClass(b.status)}`}
                                 draggable
                                 onDragStart={(e)=>{ e.stopPropagation(); e.dataTransfer.setData("text/booking-id", String(b.id)) }}
                                 onClick={(e)=>{ e.stopPropagation(); setSelectedBooking(b) }}
                                 style={bg ? { background: bg } : CardBg(b.staffId ?? b.serviceId ?? b.id)}
                               >
-                                <div className="font-medium text-sm">{b.service?.name ?? `Servicio #${b.serviceId}`}</div>
+                                <div className="flex items-center justify-between gap-1">
+                                  <div className="font-medium text-sm">{b.service?.name ?? "Servicio"}</div>
+                                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${statusChipClass(b.status)}`}>{statusLabel(b.status)}</span>
+                                </div>
                                 <div className="text-xs">{new Date(b.date).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })} · {b.durationMin} min</div>
-                                <div className="text-xs">Staff: {b.staff?.name ?? `#${b.staffId}`}</div>
-                                <div className="text-xs">Cliente: {b.customer?.name ?? b.customerId}</div>
+                                <div className="text-xs">Atiende: {b.staff?.name ?? "—"}</div>
+                                <div className="text-xs">Cliente: {b.customer?.name ?? "—"}</div>
                                 <div className="flex gap-1 mt-2">
                                   <button className="btn" onClick={(e) => { e.stopPropagation(); setMoving(b) }}>↔ Mover</button>
                                   <button className="btn" onClick={(e) => { e.stopPropagation(); deleteBooking(b.id) }}>Eliminar</button>
@@ -331,15 +344,18 @@ export default function Calendar() {
                           {cellBookings.map((b: any) => (
                             <div
                               key={b.id}
-                              className={`p-2 rounded-lg border cursor-grab ${moving?.id === b.id ? "ring-2 ring-blue-400" : ""}`}
+                              className={`p-2 rounded-lg border cursor-grab ${moving?.id === b.id ? "ring-2 ring-blue-400" : ""} ${statusCardClass(b.status)}`}
                               draggable
                               onDragStart={(e)=>{ e.stopPropagation(); e.dataTransfer.setData("text/booking-id", String(b.id)) }}
                               onClick={(e)=>{ e.stopPropagation(); setSelectedBooking(b) }}
                               style={{ background: staffColors[i] }}
                             >
-                              <div className="font-medium text-sm">{b.service?.name ?? `Servicio #${b.serviceId}`}</div>
+                              <div className="flex items-center justify-between gap-1">
+                                <div className="font-medium text-sm">{b.service?.name ?? "Servicio"}</div>
+                                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${statusChipClass(b.status)}`}>{statusLabel(b.status)}</span>
+                              </div>
                               <div className="text-xs">{new Date(b.date).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })} · {b.durationMin} min</div>
-                              <div className="text-xs">Cliente: {b.customer?.name ?? b.customerId}</div>
+                              <div className="text-xs">Cliente: {b.customer?.name ?? "—"}</div>
                               <div className="flex gap-1 mt-2">
                                 <button className="btn" onClick={(e) => { e.stopPropagation(); setMoving(b) }}>↔ Mover</button>
                                 <button className="btn" onClick={(e) => { e.stopPropagation(); deleteBooking(b.id) }}>Eliminar</button>
@@ -378,6 +394,15 @@ export default function Calendar() {
       )}
 
       <QuickEditBooking booking={selectedBooking} onClose={()=>setSelectedBooking(null)} onSaved={()=>mutate()} />
+      {nuevaCita && (
+        <NewBookingModal
+          fechaInicial={nuevaCita.fecha}
+          staffInicial={nuevaCita.staffId}
+          locationInicial={locationId}
+          onClose={() => setNuevaCita(null)}
+          onSaved={() => mutate()}
+        />
+      )}
     </div>
     </div>
   )

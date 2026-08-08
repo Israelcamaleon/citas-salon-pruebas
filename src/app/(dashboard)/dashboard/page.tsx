@@ -8,7 +8,7 @@ import Staffs from "@/features/staff/components/Staffs"
 export default function Dashboard() {
   return (
     <div className="space-y-4">
-      <h1 className="page-title">Dashboard</h1>
+      <h1 className="page-title">Inicio</h1>
       <Tabs tabs={[
         { key: "bookings", label: "Citas", content: <Bookings /> },
         { key: "calendar", label: "Calendario", content: <CalendarView /> },

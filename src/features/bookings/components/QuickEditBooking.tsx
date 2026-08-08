@@ -1,6 +1,9 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import useSWR from 'swr'
+import BookingActions from './BookingActions'
+import { statusLabel, statusChipClass } from '@/lib/bookingStatus'
+import { toast } from '@/lib/toast'
 
 const fetcher = (u: string) => fetch(u).then(r => r.json())
 
@@ -54,10 +57,11 @@ export default function QuickEditBooking({
         body: JSON.stringify(payload)
       })
       if(!res.ok) throw new Error(await res.text())
+      toast('Cita actualizada')
       onSaved && onSaved()
       onClose()
     }catch(e:any){
-      alert(e?.message || 'No se pudo guardar')
+      toast(e?.message || 'No se pudo guardar', 'error')
     }finally{
       setSaving(false)
     }
@@ -66,12 +70,31 @@ export default function QuickEditBooking({
   if(!booking) return null
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-lg p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Editar cita #{booking.id}</h3>
-          <button className="text-sm underline" onClick={onClose}>Cerrar</button>
+    <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50">
+      <div className="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl shadow-lg p-4 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-lg font-semibold truncate">
+            {booking.customer?.name ?? 'Cita'}
+          </h3>
+          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusChipClass((booking as any).status)}`}>
+            {statusLabel((booking as any).status)}
+          </span>
         </div>
+        <p className="text-sm text-gray-600">
+          {booking.service?.name ?? 'Servicio'} · {booking.durationMin} min
+          {booking.location?.name ? ` · ${booking.location.name}` : ''}
+        </p>
+
+        <BookingActions
+          bookingId={booking.id}
+          status={(booking as any).status}
+          customerId={booking.customerId}
+          customerName={booking.customer?.name}
+          customerPhone={booking.customer?.phone}
+          onChanged={() => { onSaved && onSaved(); onClose() }}
+        />
+
+        <div className="border-t pt-3 text-sm font-medium text-gray-700">Reprogramar</div>
 
         <div className="grid grid-cols-2 gap-3">
           <label className="text-sm">Día
