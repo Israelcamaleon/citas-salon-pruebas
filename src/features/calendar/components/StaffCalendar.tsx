@@ -44,7 +44,21 @@ export default function Calendar() {
   }, [bookingsRaw, locationId])
 
   const daysWeek = useMemo(() => [...Array(7)].map((_, i) => weekStart.add(i, 'day')), [weekStart])
-  const hours = useMemo(() => [...Array(13)].map((_, i) => 8 + i), [])
+  const hours = useMemo(() => [...Array(17)].map((_, i) => 6 + i), [])
+
+  // Citas del período visible que caen FUERA del rango de horas del calendario
+  const fueraDeHorario = useMemo(() => {
+    const inGrid = (b: any) => {
+      const hh = dayjs(b.date).hour()
+      return hh >= 6 && hh <= 22
+    }
+    return (bookings ?? []).filter((b: any) => {
+      if (!selectedStaffIdsForLoc.includes(b.staffId)) return false
+      if (inGrid(b)) return false
+      if (view === 'day') return dayjs(b.date).isSame(selectedDate, 'day')
+      return dayjs(b.date).isSame(weekStart, 'week')
+    })
+  }, [bookings, selectedStaffIdsForLoc, view, selectedDate, weekStart])
 
   // ---- Staff per Location mapping (localStorage) ----
   function readStaffByLocation(): Record<string, number[]> {
@@ -341,6 +355,28 @@ export default function Calendar() {
             </tbody>
           </table>
         )}
+      {/* Citas fuera del horario mostrado — para que ninguna se pierda */}
+      {fueraDeHorario.length > 0 && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 space-y-2">
+          <div className="text-sm font-semibold text-amber-800">
+            🕐 {fueraDeHorario.length} cita(s) fuera del horario del calendario (antes de 6:00 o después de 22:00)
+          </div>
+          {fueraDeHorario.map((b: any) => (
+            <div key={b.id} className="flex items-center justify-between gap-2 text-sm bg-white rounded-lg border px-3 py-2">
+              <div>
+                <strong>{b.service?.name ?? `Servicio #${b.serviceId}`}</strong> · {b.customer?.name ?? b.customerId}
+                <span className="text-neutral-500"> · {dayjs(b.date).format("ddd DD/MM HH:mm")} · {b.staff?.name ?? ""}</span>
+              </div>
+              <div className="flex gap-1">
+                <button className="btn btn-sm" onClick={() => setMoving(b)}>↔ Mover</button>
+                <button className="btn btn-sm" onClick={() => setSelectedBooking(b)}>Ver</button>
+              </div>
+            </div>
+          ))}
+          <p className="text-xs text-amber-700">Usa "↔ Mover" y toca un horario del calendario para reubicarla.</p>
+        </div>
+      )}
+
       <QuickEditBooking booking={selectedBooking} onClose={()=>setSelectedBooking(null)} onSaved={()=>mutate()} />
     </div>
     </div>
