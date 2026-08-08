@@ -32,8 +32,11 @@ function cardProgress(card: Card): string {
   }
   if (type === "CASHBACK" || type === "PREPAID") return `$${Number(card.balance).toFixed(2)}`
   if (type === "SERVICE") {
-    const services = Array.isArray(cfg.services) ? cfg.services.length : null
-    return services ? `${card.balance}/${services} servicios` : `${card.balance} servicios`
+    const services = Array.isArray(cfg.services) ? cfg.services as { name?: string; total?: number }[] : []
+    const usage = (card.serviceUsage ?? {}) as Record<string, number>
+    const total = services.reduce((a, s) => a + (Number(s.total) || 0), 0)
+    const usados = services.reduce((a, s) => a + (Number(usage[s.name ?? ""]) || 0), 0)
+    return total ? `${usados}/${total} servicios` : `${card.balance} servicios`
   }
   return String(card.balance)
 }
