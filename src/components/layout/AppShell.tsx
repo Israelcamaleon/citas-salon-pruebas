@@ -43,11 +43,11 @@ export default function AppShell({ children, loyaltyEnabled }: Props) {
   }, [pathname])
 
   const nav: NavItem[] = [
-    { href: "/dashboard", label: "Dashboard", icon: "📊", section: "General" },
+    { href: "/dashboard", label: "Inicio", icon: "🏠", section: "General" },
     ...(loyaltyEnabled
       ? [{ href: "/loyalty", label: "Lealtad", icon: "🎫", section: "General" } as NavItem]
       : []),
-    { href: "/ajustes", label: "Ajustes", icon: "⚙️", section: "Sistema" },
+    { href: "/ajustes", label: "Ajustes", icon: "⚙️", section: "Configuración" },
   ]
 
   async function handleLogout() {
