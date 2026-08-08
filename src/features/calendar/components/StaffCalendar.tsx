@@ -35,7 +35,9 @@ export default function Calendar() {
 
   useEffect(() => {
     const saved = localStorage.getItem('cal_view') as ViewMode | null
-    if (saved === 'week' || saved === 'day') setView(saved)
+    if (saved === 'week' || saved === 'day') { setView(saved); return }
+    // Sin preferencia guardada: celular → vista de día, escritorio → semana
+    setView(window.innerWidth < 768 ? 'day' : 'week')
   }, [])
 
   useEffect(() => { localStorage.setItem('cal_view', view) }, [view])

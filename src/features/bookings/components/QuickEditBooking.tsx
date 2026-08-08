@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import BookingActions from './BookingActions'
+import CustomerProfile from '@/features/customers/components/CustomerProfile'
 import { statusLabel, statusChipClass } from '@/lib/bookingStatus'
 import { toast } from '@/lib/toast'
 
@@ -31,6 +32,7 @@ export default function QuickEditBooking({
   const [time, setTime] = useState('')
   const [staffId, setStaffId] = useState<number|''>('')
   const [saving, setSaving] = useState(false)
+  const [verPerfil, setVerPerfil] = useState(false)
 
   useEffect(()=>{
     if(!booking) return
@@ -73,9 +75,14 @@ export default function QuickEditBooking({
     <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50">
       <div className="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl shadow-lg p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-lg font-semibold truncate">
-            {booking.customer?.name ?? 'Cita'}
-          </h3>
+          <button
+            type="button"
+            onClick={() => setVerPerfil(true)}
+            className="text-lg font-semibold truncate text-left hover:text-lh-accent"
+            title="Ver perfil del cliente"
+          >
+            {booking.customer?.name ?? 'Cita'} <span className="text-xs text-lh-accent">👤</span>
+          </button>
           <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusChipClass((booking as any).status)}`}>
             {statusLabel((booking as any).status)}
           </span>
@@ -117,6 +124,9 @@ export default function QuickEditBooking({
           </button>
         </div>
       </div>
+      {verPerfil && (
+        <CustomerProfile customerId={booking.customerId} onClose={() => setVerPerfil(false)} />
+      )}
     </div>
   )
 }

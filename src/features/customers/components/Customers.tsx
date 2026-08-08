@@ -4,6 +4,7 @@ import axios from "axios"
 import Link from "next/link"
 import { useRef, useState, useMemo } from "react"
 import { asArray, fetcher } from "@/lib/api"
+import CustomerProfile from "./CustomerProfile"
 
 type Customer = { id:number; name:string; phone:string|null; email:string|null; notes:string|null; sexo:string|null }
 
@@ -25,6 +26,7 @@ export default function Customers(){
 
   const [editingId, setEditingId] = useState<number|null>(null)
   const [editRow, setEditRow] = useState<Partial<Customer>>({})
+  const [perfilId, setPerfilId] = useState<number|null>(null)
 
   async function onSubmit(e:any){
     e.preventDefault()
@@ -124,7 +126,11 @@ export default function Customers(){
                   <td className="p-2">
                     {isEditing ? (
                       <input className="input" value={editRow.name||''} onChange={e=>setEditRow({...editRow, name:e.target.value})} />
-                    ) : row.name}
+                    ) : (
+                      <button type="button" className="text-left hover:text-lh-accent font-medium" onClick={()=>setPerfilId(row.id)} title="Ver perfil">
+                        {row.name}
+                      </button>
+                    )}
                   </td>
                   <td className="p-2">
                     {isEditing ? (
@@ -171,6 +177,10 @@ export default function Customers(){
           </tbody>
         </table>
       </div>
+
+      {perfilId !== null && (
+        <CustomerProfile customerId={perfilId} onClose={()=>setPerfilId(null)} />
+      )}
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react"
 import useSWR from "swr"
 import { createSupabaseBrowser } from "@/lib/supabase/client"
 import BrandBar from "@/components/layout/BrandBar"
+import GlobalSearch from "@/components/layout/GlobalSearch"
 import { ToastHost } from "@/lib/toast"
 
 const fetcher = (url: string) =>
@@ -175,10 +176,16 @@ export default function AppShell({ children, loyaltyEnabled }: Props) {
             </button>
             <BrandBar compact />
           </div>
+          <div className="flex-1 max-w-xs mx-3 hidden sm:block">
+            <GlobalSearch />
+          </div>
           <div className="text-xs text-lh-muted hidden sm:block">
             {me?.staff?.email}
           </div>
         </header>
+        <div className="sm:hidden px-3 py-2 bg-lh-card border-b border-lh-border flex-shrink-0">
+          <GlobalSearch />
+        </div>
         <main className="flex-1 overflow-y-auto p-3 md:p-6">{children}</main>
       </div>
       <ToastHost />
