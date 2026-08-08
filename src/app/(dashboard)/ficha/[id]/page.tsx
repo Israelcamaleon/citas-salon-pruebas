@@ -362,7 +362,7 @@ export default function FichaPage() {
               </div>
 
               {/* Estado */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {(["elasticidad", "porosidad", "hidratacion"] as const).map((k) => (
                   <label key={k} className="flex flex-col gap-1 text-sm">
                     <span className="capitalize">{k} %</span>
