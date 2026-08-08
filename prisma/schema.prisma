@@ -60,6 +60,56 @@ model Customer {
   bookings        Booking[]
   loyaltyCards    LoyaltyCard[]
   loyaltyCouponUses LoyaltyCouponUse[]
+  ficha           CustomerFicha?
+  hairRecords     HairServiceRecord[]
+}
+
+// ─── Ficha de diagnóstico capilar ───────────────────────────────────────────
+
+model CustomerFicha {
+  id                 Int       @id @default(autoincrement())
+  customerId         Int       @unique
+  // Alertas / datos fijos
+  alergiasTiene      Boolean   @default(false)
+  alergiasDetalle    String?
+  pruebaAlergiaHasta DateTime?
+  embarazoLactancia  Boolean   @default(false)
+  tipoCabello        String?   // liso | ondulado | rizado | afro
+  grosor             String?   // fino | medio | grueso
+  alertas            Json?     // string[] de alertas permanentes
+  // Color actual
+  nivelBase          Int?      // 1-10
+  subtono            String?
+  porcentajeCanas    Int?      // 0-100
+  colorHex           String?
+  // Estado del cabello (0-100)
+  elasticidad        Int?
+  porosidad          Int?
+  hidratacion        Int?
+  // Cuidados post-servicio vigentes
+  cuidados           String?
+  notasCuidados      String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  customer           Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model HairServiceRecord {
+  id            Int       @id @default(autoincrement())
+  customerId    Int
+  fecha         DateTime  @default(now())
+  servicio      String
+  formula       Json?     // { raiz, longitudes, puntas, tonalizacion } cada zona { producto, oxidante, tiempo }
+  resultado     String?
+  nivelDano     Int?      // 1-5
+  fotos         Json?     // string[] urls
+  mapaTecnica   Json?     // [{ color, strokeWidth, pathData }]
+  cuidados      String?
+  observaciones String?
+  createdAt     DateTime  @default(now())
+  customer      Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
 }
 
 model Booking {

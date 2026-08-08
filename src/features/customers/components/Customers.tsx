@@ -1,6 +1,7 @@
 'use client'
 import useSWR from "swr"
 import axios from "axios"
+import Link from "next/link"
 import { useRef, useState, useMemo } from "react"
 import { asArray, fetcher } from "@/lib/api"
 
@@ -130,6 +131,7 @@ export default function Customers(){
                   <td className="p-2 space-x-2">
                     {!isEditing ? (
                       <>
+                        <Link className="btn" href={`/ficha/${row.id}`}>Ficha</Link>
                         <button className="btn" onClick={()=>startEdit(row)}>Editar</button>
                         <button className="btn" onClick={()=>remove(row.id)}>Eliminar</button>
                       </>
