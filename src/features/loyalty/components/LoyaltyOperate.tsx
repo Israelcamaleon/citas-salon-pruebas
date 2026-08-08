@@ -603,17 +603,3 @@ function ActionPanel({
 
   return null
 }
-    <div className="space-y-2">
-        <p className="text-sm rounded-lg bg-lh-bg px-3 py-2">
-          Beneficio: <strong>${config.discount} de descuento</strong>
-          <span className="text-lh-muted"> · cupón {config.code}</span>
-        </p>
-        <button type="button" className="btn btn-primary w-full" disabled={busy} onClick={onCoupon}>
-          Canjear cupón
-        </button>
-      </div>
-    )
-  }
-
-  return null
-}
