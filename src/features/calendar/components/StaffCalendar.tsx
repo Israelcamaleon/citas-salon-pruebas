@@ -46,20 +46,6 @@ export default function Calendar() {
   const daysWeek = useMemo(() => [...Array(7)].map((_, i) => weekStart.add(i, 'day')), [weekStart])
   const hours = useMemo(() => [...Array(17)].map((_, i) => 6 + i), [])
 
-  // Citas del período visible que caen FUERA del rango de horas del calendario
-  const fueraDeHorario = useMemo(() => {
-    const inGrid = (b: any) => {
-      const hh = dayjs(b.date).hour()
-      return hh >= 6 && hh <= 22
-    }
-    return (bookings ?? []).filter((b: any) => {
-      if (!selectedStaffIdsForLoc.includes(b.staffId)) return false
-      if (inGrid(b)) return false
-      if (view === 'day') return dayjs(b.date).isSame(selectedDate, 'day')
-      return dayjs(b.date).isSame(weekStart, 'week')
-    })
-  }, [bookings, selectedStaffIdsForLoc, view, selectedDate, weekStart])
-
   // ---- Staff per Location mapping (localStorage) ----
   function readStaffByLocation(): Record<string, number[]> {
     if (typeof window === 'undefined') return {}
@@ -84,6 +70,20 @@ export default function Calendar() {
   )
 
   const staffColors = useMemo(() => ((filteredStaffs ?? []) as any[]).map((_: any, i: number) => `hsl(${(i * 57) % 360} 85% 93%)`), [filteredStaffs])
+
+  // Citas del período visible que caen FUERA del rango de horas del calendario
+  const fueraDeHorario = useMemo(() => {
+    const inGrid = (b: any) => {
+      const hh = dayjs(b.date).hour()
+      return hh >= 6 && hh <= 22
+    }
+    return (bookings ?? []).filter((b: any) => {
+      if (!selectedStaffIdsForLoc.includes(b.staffId)) return false
+      if (inGrid(b)) return false
+      if (view === 'day') return dayjs(b.date).isSame(selectedDate, 'day')
+      return dayjs(b.date).isSame(weekStart, 'week')
+    })
+  }, [bookings, selectedStaffIdsForLoc, view, selectedDate, weekStart])
 
   function nextWeek() { setWeekStart(s => s.add(1, 'week')) }
   function prevWeek() { setWeekStart(s => s.subtract(1, 'week')) }
