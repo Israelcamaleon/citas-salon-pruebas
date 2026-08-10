@@ -1,3 +1,7 @@
 {
-  "installCommand": "npm install --legacy-peer-deps"
+  "installCommand": "npm install --legacy-peer-deps",
+  "crons": [
+    { "path": "/api/cron/sync-odoo", "schedule": "0 8 * * *" },
+    { "path": "/api/cron/sync-meta", "schedule": "5 8 * * *" }
+  ]
 }

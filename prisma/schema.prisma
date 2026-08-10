@@ -63,6 +63,8 @@ model Customer {
   loyaltyCouponUses LoyaltyCouponUse[]
   ficha           CustomerFicha?
   hairRecords     HairServiceRecord[]
+  posTickets      PosTicket[]
+  leads           Lead[]
 }
 
 // ─── Ficha de diagnóstico capilar ───────────────────────────────────────────
@@ -258,4 +260,108 @@ model LoyaltyCouponUse {
   customer   Customer       @relation(fields: [customerId], references: [id])
 
   @@unique([programId, customerId])
+}
+
+// ─── Integración Odoo 8 + Meta Ads (marketing / ROAS) ───────────────────────
+// Reglas de negocio verificadas contra el Odoo real el 10-ago-2026.
+// Ver src/lib/odoo/sync.ts
+
+model PosTicket {
+  id            Int       @id @default(autoincrement())
+  odooId        Int       @unique // pos.order id — cursor de sincronización incremental
+  folio         String    // ej. "Juruquilla/26293" (NO único global; Juriquilla viene mal escrito así)
+  dateUtc       DateTime  // date_order crudo de Odoo (UTC)
+  dayLocal      String    // YYYY-MM-DD hora Querétaro (UTC−6) — USAR para ROAS diario
+  amountTotal   Float     // con IVA 16%, MXN
+  branch        String    // "Zaragoza" | "Juriquilla" | "Heeler Studio" | "Terranova"
+  attributable  Boolean   // false si fue "venta mostrador" (partner genérico 18529) o sin teléfono
+  customerPhone String?   // 10 dígitos normalizados — llave de atribución
+  odooPartnerId Int?      // res.partner id en Odoo
+
+  customerId    Int?
+  customer      Customer? @relation(fields: [customerId], references: [id])
+
+  lines         PosTicketLine[]
+
+  @@index([dayLocal])
+  @@index([branch, dayLocal])
+  @@index([customerId])
+  @@index([customerPhone])
+}
+
+model PosTicketLine {
+  id            Int       @id @default(autoincrement())
+  odooId        Int       @unique // pos.order.line id
+  productOdooId Int
+  productName   String
+  qty           Float
+  amountIncl    Float     // price_subtotal_incl (con IVA)
+  businessLine  String    // "Alika" | "Cattledogs" | "Heeler Studio" (categoría POS raíz)
+
+  ticketId      Int
+  ticket        PosTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([businessLine])
+}
+
+// Cursor de la sincronización incremental (los tickets no se editan tras cobrarse)
+model SyncState {
+  id         String    @id // "odoo" | "meta"
+  lastOdooId Int       @default(0)
+  lastRunAt  DateTime  @default(now())
+  lastOkAt   DateTime?
+  lastError  String?
+}
+
+// ─── Meta Ads ───
+
+model AdCampaign {
+  id        String   @id @default(cuid())
+  metaId    String   @unique // campaign id de Meta
+  name      String
+  status    String
+  objective String?
+
+  daily     AdInsightDaily[]
+}
+
+model AdInsightDaily {
+  id          String   @id @default(cuid())
+  date        String   // YYYY-MM-DD (zona horaria de la ad account)
+  spend       Float    // MXN
+  impressions Int
+  clicks      Int
+  reach       Int
+
+  campaignId  String
+  campaign    AdCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, date])
+  @@index([date])
+}
+
+// ─── Atribución ───
+
+enum LeadSource {
+  META_AD
+  WHATSAPP_ORGANIC
+  DIRECT
+  UNKNOWN
+}
+
+model Lead {
+  id             String     @id @default(cuid())
+  source         LeadSource @default(UNKNOWN)
+  metaCampaignId String?    // campaign id de Meta si vino de anuncio
+  firstMessageAt DateTime?
+  attributedBy   String?    // "meta-webhook" | "time-window" | "keyword"
+
+  customerId     Int?
+  customer       Customer?  @relation(fields: [customerId], references: [id])
+
+  createdAt      DateTime   @default(now())
+
+  @@index([customerId])
+  @@index([metaCampaignId])
 }
